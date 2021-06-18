@@ -49,8 +49,10 @@
     (goto-char pos)
     (current-column)))
 
-(defun gumshoe--delta (pos)
-  (let* ((line (line-number-at-pos pos))
+(defun gumshoe--delta (marker)
+  "Return the Euclidean distance between point and MARK-POS."
+  (let* ((pos (marker-position marker))
+         (line (line-number-at-pos pos))
          (dline (abs (- line
                         (line-number-at-pos (point)))))
          (column (gumshoe--line-number-at-pos pos))
@@ -59,32 +61,30 @@
          (dcolumn-scaled (/ dcolumn gumshoe--horizontal-scale)))
     (sqrt (+ (math-pow dline 2) (math-pow dcolumn-scaled 2)))))
 
-;; (defun gumshoe--backtracking-p ()
-;;   (eq this-command 'gumshoe-backtrack))
-
-(defvar-local gumshoe--backtracking-p nil)
-(defvar-local gumshoe--log-index 0)
 (defun gumshoe--track ()
   "Track the previous editing position in `gumshoe--log'."
   (unless (or gumshoe--backtracking-p (minibufferp))
     (setq gumshoe--log-index 0)
     (when (> (gumshoe--delta (ring-ref gumshoe--log gumshoe--log-index))
              gumshoe--min-delta)
-      (ring-insert gumshoe--log (point))))
+      (ring-insert gumshoe--log (point-marker))))
   (setq gumshoe--backtracking-p nil))
 
-(add-hook 'kill-buffer-hook 'gumshoe--prev-pos-kill-buffer-hook)
-
-(defun gumshoe--prev-pos-kill-buffer-hook ()
-  "Reclaim the buffer-local marker."
-  (setq gumshoe--log nil))
-
-(defun gumshoe-backtrack ()
-  "Jump to the previous editing position."
+(defun gumshoe-backtrack-back ()
+  "Jump backward one position in the `gumshoe--log'."
   (interactive)
   (setq gumshoe--backtracking-p t)
   (unless (ring-empty-p gumshoe--log)
     (setq gumshoe--log-index (1+ gumshoe--log-index))
+    (goto-char (ring-ref gumshoe--log gumshoe--log-index))))
+
+(defun gumshoe-backtrack-forward ()
+  "Jump forward one position in the `gumshoe--log'."
+  (interactive)
+  (setq gumshoe--backtracking-p t)
+  (unless (or (ring-empty-p gumshoe--log)
+              (eq gumshoe--log-index 0))
+    (setq gumshoe--log-index (1- gumshoe--log-index))
     (goto-char (ring-ref gumshoe--log gumshoe--log-index))))
 
 (provide 'gumshoe)
