@@ -25,15 +25,21 @@
 
 ;;; Code:
 
-(defvar-local gumshoe--log-len 100)
-(defvar-local gumshoe--log (make-ring gumshoe--log-len)
-  "Buffer-local marker to remember the previous editing position.")
-(ring-insert gumshoe--log (point))
-(defvar-local gumshoe--prev-position 1
-  "Buffer-local marker to remember the previous editing position.")
+(defvar gumshoe--log-len 100
+  "Length of gumshoe’s log ring-buffer.")
+(defvar gumshoe--log (make-ring gumshoe--log-len)
+  "Ring-buffer to remember the previous editing position.")
+(ring-insert gumshoe--log (point-marker))
 
-(defvar-local gumshoe--min-delta 15)
-(defvar-local gumshoe--horizontal-scale 3)
+(defvar gumshoe--min-delta 15
+  "Gumshoe logs movements beyond this Euclidean distance from previous entry.")
+(defvar gumshoe--horizontal-scale 3
+  "Horizontal distances are divided by this factor.")
+
+(defvar gumshoe--backtracking-p nil
+  "Flag indicating when gumshoe is backtracking, to pause tracking.")
+(defvar gumshoe--log-index 0
+  "Current index backwards into the log when backtracking.")
 
 (add-hook 'pre-command-hook 'gumshoe--track)
 
