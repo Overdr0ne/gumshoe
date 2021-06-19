@@ -31,7 +31,7 @@
   "Ring-buffer to remember the previous editing position.")
 (ring-insert gumshoe--log (point-marker))
 
-(defvar gumshoe--min-delta 15
+(defvar gumshoe--follow-distance 15
   "Gumshoe logs movements beyond this Euclidean distance from previous entry.")
 (defvar gumshoe--horizontal-scale 3
   "Horizontal distances are divided by this factor.")
@@ -49,7 +49,7 @@
     (goto-char pos)
     (current-column)))
 
-(defun gumshoe--delta (marker)
+(defun gumshoe--distance-to (marker)
   "Return the Euclidean distance between point and MARKER."
   (let* ((pos (marker-position marker))
          (line (line-number-at-pos pos))
@@ -63,8 +63,8 @@
 
 (defun gumshoe--end-of-leash-p (last-mark)
   "Check if LAST-MARK is outside gumshoe’s boundary."
-  (> (gumshoe--delta last-mark)
-     gumshoe--min-delta))
+  (> (gumshoe--distance-to last-mark)
+     gumshoe--follow-distance))
 
 (defun gumshoe--track ()
   "Track the previous editing position in `gumshoe--log'."
