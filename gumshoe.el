@@ -50,7 +50,7 @@
     (current-column)))
 
 (defun gumshoe--delta (marker)
-  "Return the Euclidean distance between point and MARK-POS."
+  "Return the Euclidean distance between point and MARKER."
   (let* ((pos (marker-position marker))
          (line (line-number-at-pos pos))
          (dline (abs (- line
@@ -61,14 +61,26 @@
          (dcolumn-scaled (/ dcolumn gumshoe--horizontal-scale)))
     (sqrt (+ (math-pow dline 2) (math-pow dcolumn-scaled 2)))))
 
+(defun gumshoe--end-of-leash-p (last-mark)
+  "Check if LAST-MARK is outside gumshoe’s boundary."
+  (> (gumshoe--delta last-mark)
+     gumshoe--min-delta))
+
 (defun gumshoe--track ()
   "Track the previous editing position in `gumshoe--log'."
   (unless (or gumshoe--backtracking-p (minibufferp))
     (setq gumshoe--log-index 0)
-    (when (> (gumshoe--delta (ring-ref gumshoe--log gumshoe--log-index))
-             gumshoe--min-delta)
-      (ring-insert gumshoe--log (point-marker))))
+    (let ((last-mark (ring-ref gumshoe--log 0)))
+      (when (or (not (eq (current-buffer)
+                         (marker-buffer last-mark)))
+                (gumshoe--end-of-leash-p last-mark))
+        (ring-insert gumshoe--log (point-marker)))))
   (setq gumshoe--backtracking-p nil))
+
+(defun gumshoe--jump-to-marker (marker)
+  (let ((buf  (marker-buffer marker)))
+    (pop-to-buffer buf)
+    (goto-char marker)))
 
 (defun gumshoe-backtrack-back ()
   "Jump backward one position in the `gumshoe--log'."
@@ -76,7 +88,7 @@
   (setq gumshoe--backtracking-p t)
   (unless (ring-empty-p gumshoe--log)
     (setq gumshoe--log-index (1+ gumshoe--log-index))
-    (goto-char (ring-ref gumshoe--log gumshoe--log-index))))
+    (gumshoe--jump-to-marker (ring-ref gumshoe--log gumshoe--log-index))))
 
 (defun gumshoe-backtrack-forward ()
   "Jump forward one position in the `gumshoe--log'."
@@ -85,7 +97,7 @@
   (unless (or (ring-empty-p gumshoe--log)
               (eq gumshoe--log-index 0))
     (setq gumshoe--log-index (1- gumshoe--log-index))
-    (goto-char (ring-ref gumshoe--log gumshoe--log-index))))
+    (gumshoe--jump-to-marker (ring-ref gumshoe--log gumshoe--log-index))))
 
 (provide 'gumshoe)
 ;;; gumshoe.el ends here
