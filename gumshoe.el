@@ -110,9 +110,10 @@ The alist contains (string . position) pairs."
           (gumshoe--log-list (ring-elements gumshoe--log)))
       (save-excursion
         (dolist (marker gumshoe--log-list)
-          (with-current-buffer (marker-buffer marker)
-            (let ((pos (marker-position marker)))
-              (when (and pos (consult--in-range-p pos))
+          (let ((pos (marker-position marker))
+                (buf (marker-buffer marker)))
+            (when (and buf pos (consult--in-range-p pos))
+              (with-current-buffer buf
                 (goto-char pos)
                 ;; `line-number-at-pos' is a very slow function, which should be replaced everywhere.
                 ;; However in this case the slow line-number-at-pos does not hurt much, since
