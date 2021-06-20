@@ -110,16 +110,20 @@ The alist contains (string . position) pairs."
           (gumshoe--log-list (ring-elements gumshoe--log)))
       (save-excursion
         (dolist (marker gumshoe--log-list)
-          (let ((pos (marker-position marker)))
-            (when (and pos (consult--in-range-p pos))
-              (goto-char pos)
-              ;; `line-number-at-pos' is a very slow function, which should be replaced everywhere.
-              ;; However in this case the slow line-number-at-pos does not hurt much, since
-              ;; the mark ring is usually small since it is limited by `mark-ring-max'.
-              (push (consult--location-candidate
-                     (consult--line-with-cursor marker) marker
-                     (line-number-at-pos pos consult-line-numbers-widen))
-                    candidates)))))
+          (with-current-buffer (marker-buffer marker)
+            (let ((pos (marker-position marker)))
+              (when (and pos (consult--in-range-p pos))
+                (goto-char pos)
+                ;; `line-number-at-pos' is a very slow function, which should be replaced everywhere.
+                ;; However in this case the slow line-number-at-pos does not hurt much, since
+                ;; the mark ring is usually small since it is limited by `mark-ring-max'.
+                (push (consult--location-candidate
+                       (concat (buffer-name (marker-buffer marker))
+                               ":"
+                               (consult--line-with-cursor marker))
+                       marker
+                       (line-number-at-pos pos consult-line-numbers-widen))
+                      candidates))))))
       (nreverse (delete-dups candidates))))
 
   (defun consult-gumshoe ()
