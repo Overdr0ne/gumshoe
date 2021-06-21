@@ -3,6 +3,9 @@
 * Introduction
 Gumshoe quietly keeps tabs on your movements so you can retrace your steps if you ever need a reminder where you’ve been.
 
+[[./demo.gif]]
+(This demonstrates the consult-gumshoe command because it’s the most visual. I usually just use gumshoe--backtrack-back/forward.)
+
 Gumshoe does not keep track of every move you make, rather, only at increments of some minimum Euclidean distance from the last tracked position, like a leash. This package is very similar to Vim’s jump list, just generalized for Emacs.
 
 * Installation
