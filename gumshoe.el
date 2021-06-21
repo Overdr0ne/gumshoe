@@ -77,10 +77,24 @@
         (ring-insert gumshoe--log (point-marker)))))
   (setq gumshoe--backtracking-p nil))
 
+(defun gumshoe--ring-clean (ring)
+  "Gumshoe cleanup markers from RING without a buffer."
+  (let ((i 0))
+    (while (< i (ring-length ring))
+       (let ((marker (ring-ref ring i)))
+         (if (marker-buffer marker)
+             (setq i (1+ i))
+           (ring-remove ring i))))))
+(defun gumshoe--clean-log ()
+  "Cleanup dead markers from gumshoe--log."
+  (gumshoe--ring-clean gumshoe--log))
+(add-hook 'kill-buffer-hook #'gumshoe--clean-log)
+
 (defun gumshoe--jump-to-marker (marker)
   (let ((buf  (marker-buffer marker)))
-    (pop-to-buffer buf)
-    (goto-char marker)))
+    (when buf
+      (pop-to-buffer buf)
+      (goto-char marker))))
 
 (defun gumshoe-backtrack-back ()
   "Jump backward one position in the `gumshoe--log'."
