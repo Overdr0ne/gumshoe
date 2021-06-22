@@ -36,6 +36,9 @@
 (defvar gumshoe--horizontal-scale 3
   "Horizontal distances are divided by this factor.")
 
+(defvar gumshoe--idle-time 30
+  "Gumshoe automatically logs your position if you’ve been idle at POINT for this amount of time.")
+
 (defvar gumshoe--backtracking-p nil
   "Flag indicating when gumshoe is backtracking, to pause tracking.")
 (defvar gumshoe--log-index 0
@@ -112,6 +115,13 @@
               (eq gumshoe--log-index 0))
     (setq gumshoe--log-index (1- gumshoe--log-index))
     (gumshoe--jump-to-marker (ring-ref gumshoe--log gumshoe--log-index))))
+
+(defun gumshoe-log-current-position ()
+  "Add current position to the `gumshoe--log’ as a marker."
+  (interactive)
+  (unless (equal (point-marker) (ring-ref gumshoe--log 0))
+    (ring-insert gumshoe--log (point-marker))))
+(run-with-idle-timer gumshoe--idle-time t #'gumshoe-log-current-position)
 
 (with-eval-after-load 'consult
   (require 'consult)
