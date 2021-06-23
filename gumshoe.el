@@ -25,19 +25,28 @@
 
 ;;; Code:
 
-(defvar gumshoe--log-len 100
-  "Length of gumshoe’s log ring-buffer.")
-(defvar gumshoe--log (make-ring gumshoe--log-len)
+(defgroup gumshoe nil
+  "The gumshoe movement tracker."
+  :group 'convenience
+  :prefix "gumshoe-")
+
+(defcustom gumshoe-log-len 100
+  "Length of gumshoe’s log ring-buffer."
+  :type 'integer)
+(defvar gumshoe--log (make-ring gumshoe-log-len)
   "Ring-buffer to remember the previous editing position.")
 (ring-insert gumshoe--log (point-marker))
 
-(defvar gumshoe--follow-distance 15
-  "Gumshoe logs movements beyond this Euclidean distance from previous entry.")
-(defvar gumshoe--horizontal-scale 3
-  "Horizontal distances are divided by this factor.")
+(defcustom gumshoe-follow-distance 15
+  "Gumshoe logs movements beyond this Euclidean distance from previous entry."
+  :type 'integer)
+(defcustom gumshoe-horizontal-scale 3
+  "Horizontal follow distances are divided by this factor."
+  :type 'integer)
 
-(defvar gumshoe--idle-time 30
-  "Gumshoe automatically logs your position if you’ve been idle at POINT for this amount of time.")
+(defcustom gumshoe-idle-time 60
+  "Gumshoe automatically logs your position if you’ve been idle at POINT for this amount of time."
+  :type 'integer)
 
 (defvar gumshoe--backtracking-p nil
   "Flag indicating when gumshoe is backtracking, to pause tracking.")
@@ -61,13 +70,13 @@
          (column (gumshoe--line-number-at-pos pos))
          (dcolumn (abs (- column
                           (current-column))))
-         (dcolumn-scaled (/ dcolumn gumshoe--horizontal-scale)))
+         (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
     (sqrt (+ (math-pow dline 2) (math-pow dcolumn-scaled 2)))))
 
 (defun gumshoe--end-of-leash-p (last-mark)
   "Check if LAST-MARK is outside gumshoe’s boundary."
   (> (gumshoe--distance-to last-mark)
-     gumshoe--follow-distance))
+     gumshoe-follow-distance))
 
 (defun gumshoe--track ()
   "Track the previous editing position in `gumshoe--log'."
@@ -84,10 +93,10 @@
   "Gumshoe cleanup markers from RING without a buffer."
   (let ((i 0))
     (while (< i (ring-length ring))
-       (let ((marker (ring-ref ring i)))
-         (if (marker-buffer marker)
-             (setq i (1+ i))
-           (ring-remove ring i))))))
+      (let ((marker (ring-ref ring i)))
+        (if (marker-buffer marker)
+            (setq i (1+ i))
+          (ring-remove ring i))))))
 (defun gumshoe--clean-log ()
   "Cleanup dead markers from gumshoe--log."
   (gumshoe--ring-clean gumshoe--log))
@@ -121,7 +130,7 @@
   (interactive)
   (unless (equal (point-marker) (ring-ref gumshoe--log 0))
     (ring-insert gumshoe--log (point-marker))))
-(run-with-idle-timer gumshoe--idle-time t #'gumshoe-log-current-position)
+(run-with-idle-timer gumshoe-idle-time t #'gumshoe-log-current-position)
 
 (with-eval-after-load 'consult
   (require 'consult)
