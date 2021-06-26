@@ -35,7 +35,6 @@
   :type 'integer)
 (defvar gumshoe--log (make-ring gumshoe-log-len)
   "Ring-buffer to remember the previous editing position.")
-(ring-insert gumshoe--log (point-marker))
 
 (defcustom gumshoe-follow-distance 15
   "Gumshoe logs movements beyond this Euclidean distance from previous entry."
@@ -53,7 +52,22 @@
 (defvar gumshoe--log-index 0
   "Current index backwards into the log when backtracking.")
 
-(add-hook 'pre-command-hook 'gumshoe--track)
+(define-minor-mode global-gumshoe-mode
+  "Toggle global Gumshoe minor mode.
+
+Interactively with no argument, this command toggles the mode.
+A positive prefix argument enables the mode, any other prefix
+argument disables it.  From Lisp, argument omitted or nil enables
+the mode, `toggle' toggles the state.
+
+When enabled, Gumshoe logs point movements when they exceed the
+`gumshoe-follow-distance', or when the user is idle longer than
+`gumshoe-idle-time'."
+  nil
+  " Gumshoe"
+  :global t
+  (ring-insert gumshoe--log (point-marker))
+  (add-hook 'pre-command-hook 'gumshoe--track))
 
 (defun gumshoe--line-number-at-pos (pos)
   "Return column number at POINT."
