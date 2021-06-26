@@ -1,7 +1,7 @@
-#+TITLE: Gumshoe
+#+TITLE: Gumshoe: a spatial Point movement tracker
 
 * Introduction
-Gumshoe is a global minor mode that quietly keeps tabs on your movements so you can retrace your steps if you ever need a reminder where you’ve been.
+Gumshoe is a global minor mode that quietly keeps tabs on your Point movements so you can retrace your steps if you ever need a reminder where you’ve been.
 
 [[./demo.gif]]
 (This demonstrates the consult-gumshoe command because it’s the most visual. I usually just use gumshoe--backtrack-back/forward.)
@@ -29,3 +29,10 @@ I just use straight+use-package like so:
 - Configure the number of locations logged with the *gumshoe-log-len* variable.
 - Horizontal distance is scaled down by a factor of 3 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
 - If you use [[https://github.com/minad/consult][consult]], gumshoe will load *consult-gumshoe* for you. This command allows you to browse the *gumshoe--log* interactively, just like *consult-mark*.
+
+* Similar Packages
+If Gumshoe doesn’t suit you, here are some more Point history tracking packages that may.
+- https://github.com/blue0513/point-history
+- https://github.com/tcw165/history
+- https://github.com/dgutov/point-stack/
+- https://github.com/rolandwalker/back-button
