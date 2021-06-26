@@ -67,7 +67,8 @@ When enabled, Gumshoe logs point movements when they exceed the
   " Gumshoe"
   :global t
   (ring-insert gumshoe--log (point-marker))
-  (add-hook 'pre-command-hook 'gumshoe--track))
+  (add-hook 'pre-command-hook 'gumshoe--track)
+  (add-hook 'kill-buffer-hook #'gumshoe--clean-log))
 
 (defun gumshoe--line-number-at-pos (pos)
   "Return column number at POINT."
@@ -114,7 +115,6 @@ When enabled, Gumshoe logs point movements when they exceed the
 (defun gumshoe--clean-log ()
   "Cleanup dead markers from gumshoe--log."
   (gumshoe--ring-clean gumshoe--log))
-(add-hook 'kill-buffer-hook #'gumshoe--clean-log)
 
 (defun gumshoe--jump-to-marker (marker)
   (let ((buf  (marker-buffer marker)))
