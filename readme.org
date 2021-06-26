@@ -1,7 +1,7 @@
 #+TITLE: Gumshoe
 
 * Introduction
-Gumshoe quietly keeps tabs on your movements so you can retrace your steps if you ever need a reminder where you’ve been.
+Gumshoe is a global minor mode that quietly keeps tabs on your movements so you can retrace your steps if you ever need a reminder where you’ve been.
 
 [[./demo.gif]]
 (This demonstrates the consult-gumshoe command because it’s the most visual. I usually just use gumshoe--backtrack-back/forward.)
@@ -13,16 +13,19 @@ I just use straight+use-package like so:
 #+begin_src elisp
   (use-package gumshoe
     :straight (gumshoe :type git
-                        :host github
-                        :repo "Overdr0ne/gumshoe"
-                        :branch "master"))
+                       :host github
+                       :repo "Overdr0ne/gumshoe"
+                       :branch "master")
+    :config
+    ;; The minor mode must be enabled to begin tracking
+    (global-gumshoe-mode 1))
 #+end_src
 
 * Usage
-- Once installed, gumshoe will automatically start recording movements into the *gumshoe--log* ringbuffer.
+- Once *global-gumshoe-mode* is enabled, gumshoe will automatically start recording movements into the *gumshoe--log* ringbuffer.
 - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
 - Configure Gumshoe’s euclidean follow distance by customizing the *gumshoe--follow-distance* variable.
-- Configure Gumshoe’s idle time by customizing the *gumshoe--idle-time* variable.
-- Configure the number of locations logged with the *gumshoe--log-len* variable.
-- Horizontal distance is scaled down by a factor of 3 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe--horizontal-scale* if you want.
+- Configure Gumshoe’s idle time by customizing the *gumshoe-idle-time* variable.
+- Configure the number of locations logged with the *gumshoe-log-len* variable.
+- Horizontal distance is scaled down by a factor of 3 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
 - If you use [[https://github.com/minad/consult][consult]], gumshoe will load *consult-gumshoe* for you. This command allows you to browse the *gumshoe--log* interactively, just like *consult-mark*.
