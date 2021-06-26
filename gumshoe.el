@@ -68,7 +68,8 @@ When enabled, Gumshoe logs point movements when they exceed the
   :global t
   (ring-insert gumshoe--log (point-marker))
   (add-hook 'pre-command-hook 'gumshoe--track)
-  (add-hook 'kill-buffer-hook #'gumshoe--clean-log))
+  (add-hook 'kill-buffer-hook #'gumshoe--clean-log)
+  (run-with-idle-timer gumshoe-idle-time t #'gumshoe-log-current-position))
 
 (defun gumshoe--line-number-at-pos (pos)
   "Return column number at POINT."
@@ -144,7 +145,6 @@ When enabled, Gumshoe logs point movements when they exceed the
   (interactive)
   (unless (equal (point-marker) (ring-ref gumshoe--log 0))
     (ring-insert gumshoe--log (point-marker))))
-(run-with-idle-timer gumshoe-idle-time t #'gumshoe-log-current-position)
 
 (with-eval-after-load 'consult
   (require 'consult)
