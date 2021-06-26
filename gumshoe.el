@@ -146,8 +146,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   (unless (equal (point-marker) (ring-ref gumshoe--log 0))
     (ring-insert gumshoe--log (point-marker))))
 
-(with-eval-after-load 'consult
-  (require 'consult)
+(when (require 'consult nil 'noerror)
 
   (defun consult-gumshoe ()
     "Jump to a marker in the `gumshoe--log'.
@@ -160,8 +159,7 @@ The command supports preview of the currently selected marker position. "
       (consult--minibuffer-with-setup-hook
           ;; Restore the global-mark-ring in the minibuffer to keep recursive editing intact
           (lambda () (setq global-mark-ring global-mark-ring-cpy))
-        (consult-global-mark))))
-)
+        (consult-global-mark)))))
 
 
 (provide 'gumshoe)
