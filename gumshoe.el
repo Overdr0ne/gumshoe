@@ -149,47 +149,19 @@ When enabled, Gumshoe logs point movements when they exceed the
 (with-eval-after-load 'consult
   (require 'consult)
 
-  (defun consult--gumshoe-candidates ()
-    "Return alist of lines containing gumshoe markers.
-The alist contains (string . position) pairs."
-    (consult--forbid-minibuffer)
-    (let ((candidates)
-          (gumshoe--log-list (ring-elements gumshoe--log)))
-      (save-excursion
-        (dolist (marker gumshoe--log-list)
-          (let ((pos (marker-position marker))
-                (buf (marker-buffer marker)))
-            (when (and buf pos (consult--in-range-p pos))
-              (with-current-buffer buf
-                (goto-char pos)
-                ;; `line-number-at-pos' is a very slow function, which should be replaced everywhere.
-                ;; However in this case the slow line-number-at-pos does not hurt much, since
-                ;; the mark ring is usually small since it is limited by `mark-ring-max'.
-                (push (consult--location-candidate
-                       (concat (buffer-name (marker-buffer marker))
-                               ":"
-                               (consult--line-with-cursor marker))
-                       marker
-                       (line-number-at-pos pos consult-line-numbers-widen))
-                      candidates))))))
-      (nreverse (delete-dups candidates))))
-
   (defun consult-gumshoe ()
     "Jump to a marker in the `gumshoe--log'.
 
 The command supports preview of the currently selected marker position. "
     (interactive)
-    (setq gumshoe--backtracking-p t)
-    (consult--read
-     (consult--with-increased-gc (consult--gumshoe-candidates))
-     :prompt "Go to mark: "
-     :annotate (consult--line-prefix)
-     :category 'consult-location
-     :sort nil
-     :require-match t
-     :lookup #'consult--lookup-location
-     :history '(:input consult--line-history)
-     :state (consult--jump-state))))
+    ;; Overwrite the global-mark-ring with my-markers
+    (let ((global-mark-ring-cpy global-mark-ring)
+          (global-mark-ring (ring-elements gumshoe--log)))
+      (consult--minibuffer-with-setup-hook
+          ;; Restore the global-mark-ring in the minibuffer to keep recursive editing intact
+          (lambda () (setq global-mark-ring global-mark-ring-cpy))
+        (consult-global-mark))))
+)
 
 
 (provide 'gumshoe)
