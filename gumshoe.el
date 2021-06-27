@@ -46,11 +46,34 @@
 (defcustom gumshoe-idle-time 60
   "Gumshoe automatically logs your position if you’ve been idle at POINT for this amount of time."
   :type 'integer)
+(defvar gumshoe--timer nil
+  "Idle timer used to log position after `gumshoe-idle-time'.")
 
 (defvar gumshoe--backtracking-p nil
   "Flag indicating when gumshoe is backtracking, to pause tracking.")
 (defvar gumshoe--log-index 0
   "Current index backwards into the log when backtracking.")
+
+(defvar gumshoe--initialized-p nil
+  "Flag indicating whether gumshoe mode has been initialized.")
+
+(defun gumshoe--init ()
+  "Initialize Gumshoe mode if it is not already."
+  (when (not gumshoe--initialized-p)
+    (ring-insert gumshoe--log (point-marker))
+    (add-hook 'pre-command-hook #'gumshoe--track)
+    (add-hook 'kill-buffer-hook #'gumshoe--clean-log)
+    (setq gumshoe--timer
+          (run-with-idle-timer gumshoe-idle-time t #'gumshoe-log-current-position))
+    (setq gumshoe--initialized-p t)))
+
+(defun gumshoe--shutdown ()
+  "Shutdown Gumshoe mode if it is not already."
+  (when gumshoe--initialized-p
+    (remove-hook 'pre-command-hook #'gumshoe--track)
+    (remove-hook 'kill-buffer-hook #'gumshoe--clean-log)
+    (cancel-timer gumshoe--timer)
+    (setq gumshoe--initialized-p nil)))
 
 (define-minor-mode global-gumshoe-mode
   "Toggle global Gumshoe minor mode.
@@ -63,13 +86,13 @@ the mode, `toggle' toggles the state.
 When enabled, Gumshoe logs point movements when they exceed the
 `gumshoe-follow-distance', or when the user is idle longer than
 `gumshoe-idle-time'."
-  nil
-  " Gumshoe"
+  :init-value nil
+  :lighter " Gumshoe"
+  :group 'gumshoe
   :global t
-  (ring-insert gumshoe--log (point-marker))
-  (add-hook 'pre-command-hook 'gumshoe--track)
-  (add-hook 'kill-buffer-hook #'gumshoe--clean-log)
-  (run-with-idle-timer gumshoe-idle-time t #'gumshoe-log-current-position))
+  (if global-gumshoe-mode
+      (gumshoe--init)
+    (gumshoe--shutdown)))
 
 (defun gumshoe--line-number-at-pos (pos)
   "Return column number at POINT."
@@ -160,7 +183,6 @@ The command supports preview of the currently selected marker position. "
           ;; Restore the global-mark-ring in the minibuffer to keep recursive editing intact
           (lambda () (setq global-mark-ring global-mark-ring-cpy))
         (consult-global-mark)))))
-
 
 (provide 'gumshoe)
 ;;; gumshoe.el ends here
