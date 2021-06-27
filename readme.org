@@ -4,7 +4,7 @@
 Gumshoe is a global minor mode that quietly keeps tabs on your Point movements so you can retrace your steps if you ever need a reminder where you’ve been.
 
 [[./demo.gif]]
-(This demonstrates the consult-gumshoe command because it’s the most visual. I usually just use gumshoe--backtrack-back/forward.)
+(This demonstrates the non-built-in consult-gumshoe command I describe below, because it’s the most visual. I usually just use gumshoe--backtrack-back/forward.)
 
 Gumshoe does not keep track of every move you make, rather, only at increments of some minimum Euclidean distance from the last tracked position, like a leash. It will also automatically log a position if you’ve idled there for a configurable amount of time. This package is very similar to Vim’s jump list, just generalized for Emacs.
 
@@ -24,6 +24,13 @@ I just use straight+use-package like so:
 * Usage
 - Once *global-gumshoe-mode* is enabled, gumshoe will automatically start recording movements into the *gumshoe--log* ringbuffer.
 - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
+- Minibuffer autocompletion: Consult supports autocompletion of global(non buffer-local) marks. I’ve decided to remove built-in support for consult, because there are many great autocompletion packages out there. This is the one I use though, so here’s how I use it. You may define a consult function for gumshoe like so:
+#+begin_src elisp
+  (defun consult-gumshoe ()
+    (interactive)
+    (consult-global-mark (ring-elements gumshoe--log)))
+#+end_src
+I then just added that to my use-package definition.
 - Configure Gumshoe’s euclidean follow distance by customizing the *gumshoe--follow-distance* variable.
 - Configure Gumshoe’s idle time by customizing the *gumshoe-idle-time* variable.
 - Configure the number of locations logged with the *gumshoe-log-len* variable.
