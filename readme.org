@@ -43,3 +43,4 @@ If Gumshoe doesn’t suit you, here are some more Point history tracking package
 - https://github.com/tcw165/history
 - https://github.com/dgutov/point-stack/
 - https://github.com/rolandwalker/back-button
+- https://github.com/gilbertw1/better-jumper
