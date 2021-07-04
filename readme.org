@@ -17,6 +17,10 @@ I just use straight+use-package like so:
                        :repo "Overdr0ne/gumshoe"
                        :branch "master")
     :config
+    ;; define a command for autocompletion of the gumshoe--log if you’d like
+    (defun consult-gumshoe ()
+      (interactive)
+      (consult-global-mark (ring-elements gumshoe--log)))
     ;; The minor mode must be enabled to begin tracking
     (global-gumshoe-mode 1))
 #+end_src
