@@ -1,5 +1,7 @@
 #+TITLE: Gumshoe: a spatial Point movement tracker
 
+[[./noir.jpg]]
+
 * Introduction
 Gumshoe is a global minor mode that quietly keeps tabs on your Point movements so you can retrace your steps if you ever need a reminder where you’ve been.
 
