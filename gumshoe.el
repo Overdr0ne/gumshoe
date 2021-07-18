@@ -49,14 +49,12 @@
 (defclass gumshoe ()
   ((log :initform nil
         :documentation "Ring-buffer to remember the previous editing position.")
-   (log-index :initform 0
+   (backtrack-index :initform 0
               :documentation "Current index backwards into the log when backtracking.")
    (timer :initform nil
           :documentation "Idle timer used to log position after `gumshoe-idle-time'.")
    (backtrackingp :initform nil
                   :documentation "Flag indicating when gumshoe is backtracking, to pause tracking.")
-   (initializedp :initform nil
-                 :documentation "Flag indicating whether gumshoe mode has been initialized.")
    (:documentation "Gumshoe keeps track of your movements.") ))
 
 (cl-defmethod initialize ((self gumshoe))
@@ -91,9 +89,9 @@
 
 (cl-defmethod track ((self gumshoe))
   "Log the current position if necessary."
-  (with-slots (backtrackingp log log-index) self
+  (with-slots (backtrackingp log backtrack-index) self
     (unless (or backtrackingp (minibufferp))
-      (setf log-index 0)
+      (setf backtrack-index 0)
       (let ((last-mark (ring-ref log 0)))
         (when (or (not (eq (current-buffer)
                            (marker-buffer last-mark)))
@@ -123,20 +121,20 @@
 
 (cl-defmethod backtrack-back ((self gumshoe))
   "Jump backward one position in the `gumshoe--log'."
-  (with-slots (backtrackingp log log-index) self
+  (with-slots (backtrackingp log backtrack-index) self
     (setf backtrackingp t)
     (unless (ring-empty-p log)
-      (setf log-index (1+ log-index))
-      (gumshoe--jump-to-marker (ring-ref log log-index)))))
+      (setf backtrack-index (1+ backtrack-index))
+      (gumshoe--jump-to-marker (ring-ref log backtrack-index)))))
 
 (cl-defmethod backtrack-forward ((self gumshoe))
   "Jump forward one position in the `gumshoe--log'."
-  (with-slots (backtrackingp log log-index) self
+  (with-slots (backtrackingp log backtrack-index) self
     (setf backtrackingp t)
     (unless (or (ring-empty-p log)
-                (eq log-index 0))
-      (setf log-index (1- log-index))
-      (gumshoe--jump-to-marker (ring-ref log log-index)))))
+                (eq backtrack-index 0))
+      (setf backtrack-index (1- backtrack-index))
+      (gumshoe--jump-to-marker (ring-ref log backtrack-index)))))
 
 (defun gumshoe--log-current-position (ring)
   "Add current position to the ring as a marker."
@@ -144,23 +142,37 @@
             (not (equal (point-marker) (ring-ref ring 0))))
     (ring-insert ring (point-marker))))
 
-(defmacro start-timer (gumshoe-var timer-var)
+(defun gumshoe--timer-callback (gumshoe-var)
+  (unless (symbol-value gumshoe-var)
+    (set gumshoe-var (initialize (gumshoe))))
+  (gumshoe--log-current-position (oref (symbol-value gumshoe-var) log)))
+
+(defun start-timer (gumshoe-var timer-var)
   "Start the idle timer to log GUMSHOE-VAR position by name.
 
 Set TIMER-VAR globally such that it can be cancelled on revert."
-  `(setf ,timer-var
-         (run-with-idle-timer gumshoe-idle-time t
-                              #'(lambda ()
-                                  (gumshoe--log-current-position (oref ,gumshoe-var log))))))
+  (set timer-var
+       (run-with-idle-timer gumshoe-idle-time t
+                            #'(lambda () (gumshoe--timer-callback gumshoe-var)))))
 
-(defmacro gumshoe--add-hooks (gumshoe-var)
+(defun gumshoe--pre-command-callback (gumshoe-var)
+  (unless (symbol-value gumshoe-var)
+    (set gumshoe-var (initialize (gumshoe))))
+  (track (symbol-value gumshoe-var)))
+
+(defun gumshoe--kill-buffer-callback (gumshoe-var)
+  (when (symbol-value gumshoe-var)
+    (gumshoe--ring-clean (oref (symbol-value gumshoe-var) log))))
+
+(defun gumshoe--add-hooks (gumshoe-var)
   "Add gumshoe hooks using the GUMSHOE-VAR by name.
 
 Reference the variable by name because the value will change depending on context."
-  `(progn
-     (add-hook 'pre-command-hook #'(lambda () (track ,gumshoe-var)))
-     ;; garbage collect dangling markers for killed buffer
-     (add-hook 'kill-buffer-hook #'(lambda () (gumshoe--ring-clean (oref ,gumshoe-var log))))))
+  (add-hook 'pre-command-hook
+            #'(lambda () (gumshoe--pre-command-callback gumshoe-var)))
+  ;; garbage collect dangling markers for killed buffer
+  (add-hook 'kill-buffer-hook
+            #'(lambda () (gumshoe--kill-buffer-callback gumshoe-var))))
 
 (defmacro gumshoe--make-commands (gumshoe-var backtrack-back-name backtrack-forward-name)
   "Make the command interface for GUMSHOE-VAR by name.
@@ -175,15 +187,15 @@ BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking co
 
 Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
   `(progn
-     (gumshoe--add-hooks ,gumshoe-var)
-     (start-timer ,gumshoe-var ,timer-var)
+     (gumshoe--add-hooks ',gumshoe-var)
+     (start-timer ',gumshoe-var ',timer-var)
      (gumshoe--make-commands ,gumshoe-var ,backtrack-back-name ,backtrack-forward-name)))
 
 (defmacro gumshoe--revert (gumshoe-var timer-var)
   "Shutdown Gumshoe mode if it is not already."
-  `(with-slots (log) ,gumshoe-var
-     (remove-hook 'pre-command-hook #'(lambda () (track ,gumshoe-var)))
-     (remove-hook 'kill-buffer-hook #'(lambda () (gumshoe--ring-clean log)))
+  `(progn
+     (remove-hook 'pre-command-hook #'(lambda () (gumshoe--pre-command-callback ,gumshoe-var)))
+     (remove-hook 'kill-buffer-hook #'(lambda () (gumshoe--kill-buffer-callback ,gumshoe-var)))
      (cancel-timer ,timer-var)))
 
 (defvar gumshoe--global nil
@@ -191,7 +203,6 @@ Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
 (defvar gumshoe--global-timer nil
   "Global idle timer that logs position for `gumshoe--global’ after `gumshoe-idle-time'.")
 (defun global-gumshoe-mode-enable ()
-  (setq gumshoe--global (initialize (gumshoe)))
   (gumshoe--mode-init gumshoe--global
                       gumshoe--global-timer
                       gumshoe-backtrack-back
@@ -221,7 +232,6 @@ When enabled, Gumshoe logs point movements when they exceed the
   "Global idle timer that logs position for `gumshoe--persp’ after`gumshoe-idle-time'.")
 (defun global-gumshoe-persp-mode-enable ()
   (require 'perspective)
-  (setq gumshoe--persp (initialize (gumshoe)))
   (persp-make-variable-persp-local 'gumshoe--persp)
   ;; Each new perspective must store its own gumshoe.
   ;; So global-gumshoe-persp-mode must be enabled at init.
@@ -230,7 +240,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   ;; the user wants anyway, to keep any old marks.
   (add-hook 'persp-created-hook
             #'(lambda ()
-                (setf gumshoe--persp (initialize (gumshoe)))))
+                (setq gumshoe--persp (initialize (gumshoe)))))
   (gumshoe--mode-init gumshoe--persp
                       gumshoe--persp-timer
                       gumshoe-persp-backtrack-back
@@ -254,6 +264,34 @@ When enabled, Gumshoe logs point movements when they exceed the
   (if global-gumshoe-persp-mode
       (global-gumshoe-persp-mode-enable)
     (gumshoe--revert gumshoe--persp gumshoe--persp-timer)))
+
+(defvar-local gumshoe--buf nil
+  "A class of gumshoe with buffer scope.")
+(defvar gumshoe--buf-timer nil
+  "Global idle timer that logs position for `gumshoe--buf’ after `gumshoe-idle-time'.")
+(defun global-gumshoe-buf-mode-enable ()
+  (gumshoe--mode-init gumshoe--buf
+                      gumshoe--buf-timer
+                      gumshoe-buf-backtrack-back
+                      gumshoe-buf-backtrack-forward))
+(define-minor-mode global-gumshoe-buf-mode
+  "Toggle global Gumshoe minor mode.
+
+Interactively with no argument, this command toggles the mode.
+A positive prefix argument enables the mode, any other prefix
+argument disables it.  From Lisp, argument omitted or nil enables
+the mode, `toggle' toggles the state.
+
+When enabled, Gumshoe logs point movements when they exceed the
+`gumshoe-follow-distance', or when the user is idle longer than
+`gumshoe-idle-time'."
+  :init-value nil
+  :lighter " Gumshoe:buf"
+  :group 'gumshoe
+  :global t
+  (if global-gumshoe-buf-mode
+      (global-gumshoe-buf-mode-enable)
+    (gumshoe--revert gumshoe--buf gumshoe--buf-timer)))
 
 (provide 'gumshoe)
 ;;; gumshoe.el ends here
