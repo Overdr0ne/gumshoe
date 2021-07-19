@@ -47,7 +47,7 @@
   :type 'integer)
 
 (defclass gumshoe ()
-  ((log :initform nil
+  ((log :initform (make-ring gumshoe-log-len)
         :documentation "Ring-buffer to remember the previous editing position.")
    (backtrack-index :initform 0
                     :documentation "Current index backwards into the log when backtracking.")
@@ -56,13 +56,6 @@
    (backtrackingp :initform nil
                   :documentation "Flag indicating when gumshoe is backtracking, to pause tracking.")
    (:documentation "Gumshoe keeps track of your movements.") ))
-
-(cl-defmethod initialize ((self gumshoe))
-  "Initialize SELF in SCOPE if it is not already."
-  (with-slots (log) self
-    (setq log (make-ring gumshoe-log-len))
-    (ring-insert log (point-marker)))
-  self)
 
 (defun gumshoe--line-number-at (pos)
   "Return column number at POS."
@@ -87,10 +80,18 @@
   (> (gumshoe--distance-to last-mark)
      gumshoe-follow-distance))
 
+(defun gumshoe--log-current-position (ring)
+  "Add current position to the ring as a marker."
+  (when (or (ring-empty-p ring)
+            (not (equal (point-marker) (ring-ref ring 0))))
+    (ring-insert ring (point-marker))))
+
 (cl-defmethod track ((self gumshoe))
   "Log the current position if necessary."
+  (unless self (error "Gumshoe argument self is nil"))
   (with-slots (backtrackingp log backtrack-index) self
     (unless (or backtrackingp (minibufferp))
+      (when (ring-empty-p log) (gumshoe--log-current-position log))
       (setf backtrack-index 0)
       (let ((last-mark (ring-ref log 0)))
         (when (or (not (eq (current-buffer)
@@ -136,15 +137,9 @@
       (setf backtrack-index (1- backtrack-index))
       (gumshoe--jump-to-marker (ring-ref log backtrack-index)))))
 
-(defun gumshoe--log-current-position (ring)
-  "Add current position to the ring as a marker."
-  (when (or (ring-empty-p ring)
-            (not (equal (point-marker) (ring-ref ring 0))))
-    (ring-insert ring (point-marker))))
-
 (defun gumshoe--timer-callback (gumshoe-var)
   (unless (symbol-value gumshoe-var)
-    (set gumshoe-var (initialize (gumshoe))))
+    (set gumshoe-var (gumshoe)))
   (gumshoe--log-current-position (oref (symbol-value gumshoe-var) log)))
 
 (defun start-timer (gumshoe-var timer-var)
@@ -157,7 +152,7 @@ Set TIMER-VAR globally such that it can be cancelled on revert."
 
 (defun gumshoe--pre-command-callback (gumshoe-var)
   (unless (symbol-value gumshoe-var)
-    (set gumshoe-var (initialize (gumshoe))))
+    (set gumshoe-var (gumshoe)))
   (track (symbol-value gumshoe-var)))
 
 (defun gumshoe--kill-buffer-callback (gumshoe-var)
@@ -233,7 +228,7 @@ When enabled, Gumshoe logs point movements when they exceed the
 (defvar gumshoe--persp-timer nil
   "Global idle timer that logs position for `gumshoe--persp’ after`gumshoe-idle-time'.")
 (defun gumshoe--persp-created-callback ()
-  (setq gumshoe--persp (initialize (gumshoe))))
+  (setq gumshoe--persp (gumshoe)))
 (defun global-gumshoe-persp-mode-enable ()
   (require 'perspective)
   (persp-make-variable-persp-local 'gumshoe--persp)
