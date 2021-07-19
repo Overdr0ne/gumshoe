@@ -51,8 +51,6 @@
         :documentation "Ring-buffer to remember the previous editing position.")
    (backtrack-index :initform 0
                     :documentation "Current index backwards into the log when backtracking.")
-   (timer :initform nil
-          :documentation "Idle timer used to log position after `gumshoe-idle-time'.")
    (backtrackingp :initform nil
                   :documentation "Flag indicating when gumshoe is backtracking, to pause tracking.")
    (:documentation "Gumshoe keeps track of your movements.") ))
