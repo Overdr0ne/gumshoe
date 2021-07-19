@@ -50,7 +50,7 @@
   ((log :initform nil
         :documentation "Ring-buffer to remember the previous editing position.")
    (backtrack-index :initform 0
-              :documentation "Current index backwards into the log when backtracking.")
+                    :documentation "Current index backwards into the log when backtracking.")
    (timer :initform nil
           :documentation "Idle timer used to log position after `gumshoe-idle-time'.")
    (backtrackingp :initform nil
@@ -153,7 +153,7 @@
 Set TIMER-VAR globally such that it can be cancelled on revert."
   (set timer-var
        (run-with-idle-timer gumshoe-idle-time t
-                            #'(lambda () (gumshoe--timer-callback gumshoe-var)))))
+                            (apply-partially #'gumshoe--timer-callback gumshoe-var))))
 
 (defun gumshoe--pre-command-callback (gumshoe-var)
   (unless (symbol-value gumshoe-var)
@@ -169,10 +169,10 @@ Set TIMER-VAR globally such that it can be cancelled on revert."
 
 Reference the variable by name because the value will change depending on context."
   (add-hook 'pre-command-hook
-            #'(lambda () (gumshoe--pre-command-callback gumshoe-var)))
+            (apply-partially #'gumshoe--pre-command-callback gumshoe-var))
   ;; garbage collect dangling markers for killed buffer
   (add-hook 'kill-buffer-hook
-            #'(lambda () (gumshoe--kill-buffer-callback gumshoe-var))))
+            (apply-partially #'gumshoe--kill-buffer-callback gumshoe-var)))
 
 (defmacro gumshoe--make-commands (gumshoe-var backtrack-back-name backtrack-forward-name)
   "Make the command interface for GUMSHOE-VAR by name.
@@ -194,8 +194,10 @@ Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
 (defmacro gumshoe--revert (gumshoe-var timer-var)
   "Shutdown Gumshoe mode if it is not already."
   `(progn
-     (remove-hook 'pre-command-hook #'(lambda () (gumshoe--pre-command-callback ,gumshoe-var)))
-     (remove-hook 'kill-buffer-hook #'(lambda () (gumshoe--kill-buffer-callback ,gumshoe-var)))
+     (remove-hook 'pre-command-hook
+                  (apply-partially #'gumshoe--pre-command-callback ,gumshoe-var))
+     (remove-hook 'kill-buffer-hook
+                  (apply-partially #'gumshoe--kill-buffer-callback ,gumshoe-var))
      (cancel-timer ,timer-var)))
 
 (defvar gumshoe--global nil
@@ -230,6 +232,8 @@ When enabled, Gumshoe logs point movements when they exceed the
   "A class of gumshoe with perspective scope.")
 (defvar gumshoe--persp-timer nil
   "Global idle timer that logs position for `gumshoe--persp’ after`gumshoe-idle-time'.")
+(defun gumshoe--persp-created-callback ()
+  (setq gumshoe--persp (initialize (gumshoe))))
 (defun global-gumshoe-persp-mode-enable ()
   (require 'perspective)
   (persp-make-variable-persp-local 'gumshoe--persp)
@@ -239,8 +243,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   ;; trying to purge every reference. That’s probably what
   ;; the user wants anyway, to keep any old marks.
   (add-hook 'persp-created-hook
-            #'(lambda ()
-                (setq gumshoe--persp (initialize (gumshoe)))))
+            #'gumshoe--persp-created-callback)
   (gumshoe--mode-init gumshoe--persp
                       gumshoe--persp-timer
                       gumshoe-persp-backtrack-back
