@@ -23,6 +23,8 @@ I just use straight+use-package like so:
     (global-gumshoe-mode 1)
     ;; Similarly for the perspective-local gumshoe:
     (global-gumshoe-persp-mode 1)
+    ;; Similarly for the buffer-local gumshoe:
+    (global-gumshoe-buf-mode 1)
     ;; define a command for autocompletion of the gumshoe--global log if you’d like:
     (defun consult-gumshoe-global ()
       (interactive)
@@ -30,7 +32,12 @@ I just use straight+use-package like so:
     ;; Similarly, for the persp local gumshoe--persp log:
     (defun consult-gumshoe-persp ()
       (interactive)
-      (consult-global-mark (ring-elements (oref gumshoe--persp log)))))
+      (consult-global-mark (ring-elements (oref gumshoe--persp log))))
+    ;; Similarly, for the buffer local gumshoe--persp log:
+    (defun consult-gumshoe-buf ()
+      (interactive)
+      (consult-global-mark (ring-elements (oref gumshoe--buf log))))
+)
 #+end_src
 
 * Usage
@@ -47,7 +54,8 @@ I then just added that to my use-package definition.
 - Configure Gumshoe’s idle time by customizing the *gumshoe-idle-time* variable.
 - Configure the number of locations logged with the *gumshoe-log-len* variable.
 - Horizontal distance is scaled down by a factor of 3 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
-- I have also provided support for [[https://github.com/nex3/perspective-el][perspectives]]. This class of gumshoe will then maintain a separate log for each perspective. Enable this mode with the *global-gumshoe-persp-mode* commands. It uses separate commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that global and perspective local logs can be tracked independently.
+- I have also provided support for [[https://github.com/nex3/perspective-el][perspectives]]. This class of gumshoe will then maintain a separate log for each perspective. Enable this mode with the *global-gumshoe-persp-mode* commands. It uses separate commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
+- Finally, I have also provided support for buffer-local gumshoes. This class of gumshoe will then maintain a separate log for each buffer. Enable this mode with the *global-gumshoe-buf-mode* commands described above. It uses separate commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
 
 * Similar Packages
 If Gumshoe doesn’t suit you, here are some more Point history tracking packages that may.
