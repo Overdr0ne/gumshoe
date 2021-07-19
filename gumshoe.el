@@ -20,8 +20,9 @@
 
 ;;; Commentary:
 
-;; This gumshoe logs any movements outside his minimum follow distance.
-;; Use the log to then backtrack to previous locations.
+;; Gumshoes log any movements outside their minimum follow distance.
+;; They will also log any position you idle at for a while.
+;; You may then use their log to backtrack to previous locations.
 
 ;;; Code:
 
@@ -89,13 +90,14 @@
   (unless self (error "Gumshoe argument self is nil"))
   (with-slots (backtrackingp log backtrack-index) self
     (unless (or backtrackingp (minibufferp))
-      (when (ring-empty-p log) (gumshoe--log-current-position log))
       (setf backtrack-index 0)
-      (let ((last-mark (ring-ref log 0)))
-        (when (or (not (eq (current-buffer)
-                           (marker-buffer last-mark)))
-                  (gumshoe--end-of-leash-p last-mark))
-          (ring-insert log (point-marker)))))
+      (if (ring-empty-p log)
+          (gumshoe--log-current-position log)
+        (let ((last-mark (ring-ref log 0)))
+          (when (or (not (eq (current-buffer)
+                             (marker-buffer last-mark)))
+                    (gumshoe--end-of-leash-p last-mark))
+            (ring-insert log (point-marker))))))
     (setf backtrackingp nil)))
 
 (defun gumshoe--ring-clean (ring)
@@ -138,7 +140,8 @@
 (defun gumshoe--timer-callback (gumshoe-var)
   (unless (symbol-value gumshoe-var)
     (set gumshoe-var (gumshoe)))
-  (gumshoe--log-current-position (oref (symbol-value gumshoe-var) log)))
+  (unless (oref (symbol-value gumshoe-var) backtrackingp)
+    (gumshoe--log-current-position (oref (symbol-value gumshoe-var) log))))
 
 (defun start-timer (gumshoe-var timer-var)
   "Start the idle timer to log GUMSHOE-VAR position by name.
