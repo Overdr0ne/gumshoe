@@ -6,7 +6,7 @@
 Gumshoe is a global minor mode that quietly keeps tabs on your Point movements so you can retrace your steps if you ever need a reminder where you’ve been.
 
 [[./demo.gif]]
-(This demonstrates the non-built-in consult-gumshoe command I describe below, because it’s the most visual. I usually just use gumshoe--backtrack-back/forward.)
+(This demonstrates the non-built-in consult-gumshoe-global command I describe below, because it’s the most visual. I usually just use gumshoe--backtrack-back/forward and its variants.)
 
 Gumshoe does not keep track of every move you make, rather, only at increments of some minimum Euclidean distance from the last tracked position, like a leash. It will also automatically log a position if you’ve idled there for a configurable amount of time. This package is very similar to Vim’s jump list, just generalized for Emacs.
 
@@ -29,21 +29,21 @@ I just use straight+use-package like so:
     (defun consult-gumshoe-global ()
       (interactive)
       (consult-global-mark (ring-elements (oref gumshoe--global log))))
-    ;; Similarly, for the persp local gumshoe--persp log:
+    ;; Similarly, for the persp local gumshoe--persp log, assuming perspectives is installed:
     (defun consult-gumshoe-persp ()
       (interactive)
       (consult-global-mark (ring-elements (oref gumshoe--persp log))))
     ;; Similarly, for the buffer local gumshoe--persp log:
     (defun consult-gumshoe-buf ()
       (interactive)
-      (consult-global-mark (ring-elements (oref gumshoe--buf log))))
-)
+      (consult-global-mark (ring-elements (oref gumshoe--buf log)))))
 #+end_src
+And no need to use all of that of course (though I do), just pick what you like.
 
 * Usage
 - Once *global-gumshoe-mode* is enabled, gumshoe will automatically start recording movements into the *gumshoe--log* ringbuffer.
 - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
-- Minibuffer autocompletion:  [[https://github.com/minad/consult][Consult]] supports autocompletion of global(non buffer-local) marks. I’ve decided to remove built-in support for consult, because there are many great autocompletion packages out there. This is the one I use though, so here’s how I use it. You may define a consult function for gumshoe like so:
+- Minibuffer autocompletion: [[https://github.com/minad/consult][Consult]] supports autocompletion of global(non buffer-local) marks. I’ve decided to remove built-in support for consult, because there are many great autocompletion packages out there. This is the one I use though, so here’s how I use it. You may define a consult function for gumshoe like so:
 #+begin_src elisp
   (defun consult-gumshoe-global ()
     (interactive)
