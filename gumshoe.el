@@ -228,6 +228,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   "Global idle timer that logs position for `gumshoe--persp-backlog’ after`gumshoe-idle-time'.")
 (defun gumshoe--persp-created-callback ()
   (setq gumshoe--persp-backlog (gumshoe--backlog)))
+;;;###autoload
 (defun global-gumshoe-persp-mode-enable ()
   (require 'perspective)
   (persp-make-variable-persp-local 'gumshoe--persp-backlog)
@@ -242,6 +243,7 @@ When enabled, Gumshoe logs point movements when they exceed the
                       gumshoe--persp-timer
                       gumshoe-persp-backtrack-back
                       gumshoe-persp-backtrack-forward))
+;;;###autoload
 (define-minor-mode global-gumshoe-persp-mode
   "Toggle persp Gumshoe minor mode.
 
@@ -266,6 +268,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   "A class of gumshoe--backlog with buffer scope.")
 (defvar gumshoe--buf-timer nil
   "Global idle timer that logs position for `gumshoe--buf-backlog’ after `gumshoe-idle-time'.")
+;;;###autoload
 (define-minor-mode global-gumshoe-buf-mode
   "Toggle global Gumshoe minor mode.
 
