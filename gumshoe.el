@@ -34,7 +34,7 @@
   :prefix "gumshoe-")
 
 (defcustom gumshoe-log-len 100
-  "Length of gumshoe’s log ring-buffer."
+  "Length of gumshoe--backlog’s log ring-buffer."
   :type 'integer)
 (defcustom gumshoe-follow-distance 15
   "Gumshoe logs movements beyond this Euclidean distance from previous entry."
@@ -47,14 +47,14 @@
   "Gumshoe automatically logs your position if you’ve been idle at POINT for this amount of time."
   :type 'integer)
 
-(defclass gumshoe ()
+(defclass gumshoe--backlog ()
   ((log :initform (make-ring gumshoe-log-len)
         :documentation "Ring-buffer to remember the previous editing position.")
-   (backtrack-index :initform 0
-                    :documentation "Current index backwards into the log when backtracking.")
+   (index :initform 0
+          :documentation "Current index backwards into the log when backtracking.")
    (backtrackingp :initform nil
-                  :documentation "Flag indicating when gumshoe is backtracking, to pause tracking.")
-   (:documentation "Gumshoe keeps track of your movements.") ))
+                  :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
+   (:documentation "Gumshoe’s backlog for tracking POINT positions.") ))
 
 (defun gumshoe--line-number-at (pos)
   "Return column number at POS."
@@ -85,12 +85,12 @@
             (not (equal (point-marker) (ring-ref ring 0))))
     (ring-insert ring (point-marker))))
 
-(cl-defmethod track ((self gumshoe))
+(cl-defmethod track ((self gumshoe--backlog))
   "Log the current position if necessary."
   (unless self (error "Gumshoe argument self is nil"))
-  (with-slots (backtrackingp log backtrack-index) self
+  (with-slots (backtrackingp log index) self
     (unless (or backtrackingp (minibufferp))
-      (setf backtrack-index 0)
+      (setf index 0)
       (if (ring-empty-p log)
           (gumshoe--log-current-position log)
         (let ((last-mark (ring-ref log 0)))
@@ -120,26 +120,26 @@
       (pop-to-buffer buf)
       (goto-char marker))))
 
-(cl-defmethod backtrack-back ((self gumshoe))
-  "Jump backward one position in the `gumshoe--log'."
-  (with-slots (backtrackingp log backtrack-index) self
+(cl-defmethod backtrack-back ((self gumshoe--backlog))
+  "Jump backward one position in the backlog."
+  (with-slots (backtrackingp log index) self
     (setf backtrackingp t)
     (unless (ring-empty-p log)
-      (setf backtrack-index (1+ backtrack-index))
-      (gumshoe--jump-to-marker (ring-ref log backtrack-index)))))
+      (setf index (1+ index))
+      (gumshoe--jump-to-marker (ring-ref log index)))))
 
-(cl-defmethod backtrack-forward ((self gumshoe))
-  "Jump forward one position in the `gumshoe--log'."
-  (with-slots (backtrackingp log backtrack-index) self
+(cl-defmethod backtrack-forward ((self gumshoe--backlog))
+  "Jump forward one position in the backlog."
+  (with-slots (backtrackingp log index) self
     (setf backtrackingp t)
     (unless (or (ring-empty-p log)
-                (eq backtrack-index 0))
-      (setf backtrack-index (1- backtrack-index))
-      (gumshoe--jump-to-marker (ring-ref log backtrack-index)))))
+                (eq index 0))
+      (setf index (1- index))
+      (gumshoe--jump-to-marker (ring-ref log index)))))
 
 (defun gumshoe--timer-callback (gumshoe-var)
   (unless (symbol-value gumshoe-var)
-    (set gumshoe-var (gumshoe)))
+    (set gumshoe-var (gumshoe--backlog)))
   (unless (oref (symbol-value gumshoe-var) backtrackingp)
     (gumshoe--log-current-position (oref (symbol-value gumshoe-var) log))))
 
@@ -153,7 +153,7 @@ Set TIMER-VAR globally such that it can be cancelled on revert."
 
 (defun gumshoe--pre-command-callback (gumshoe-var)
   (unless (symbol-value gumshoe-var)
-    (set gumshoe-var (gumshoe)))
+    (set gumshoe-var (gumshoe--backlog)))
   (track (symbol-value gumshoe-var)))
 
 (defun gumshoe--kill-buffer-callback (gumshoe-var)
@@ -161,7 +161,7 @@ Set TIMER-VAR globally such that it can be cancelled on revert."
     (gumshoe--ring-clean (oref (symbol-value gumshoe-var) log))))
 
 (defun gumshoe--add-hooks (gumshoe-var)
-  "Add gumshoe hooks using the GUMSHOE-VAR by name.
+  "Add hooks using the GUMSHOE-VAR by name.
 
 Reference the variable by name because the value will change depending on context."
   (add-hook 'pre-command-hook
@@ -196,15 +196,10 @@ Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
                   (apply-partially #'gumshoe--kill-buffer-callback ,gumshoe-var))
      (cancel-timer ,timer-var)))
 
-(defvar gumshoe--global nil
-  "A class of gumshoe with global scope.")
+(defvar gumshoe--global-backlog nil
+  "A class of gumshoe--backlog with global scope.")
 (defvar gumshoe--global-timer nil
-  "Global idle timer that logs position for `gumshoe--global’ after `gumshoe-idle-time'.")
-(defun global-gumshoe-mode-enable ()
-  (gumshoe--mode-init gumshoe--global
-                      gumshoe--global-timer
-                      gumshoe-backtrack-back
-                      gumshoe-backtrack-forward))
+  "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'.")
 (define-minor-mode global-gumshoe-mode
   "Toggle global Gumshoe minor mode.
 
@@ -221,26 +216,29 @@ When enabled, Gumshoe logs point movements when they exceed the
   :group 'gumshoe
   :global t
   (if global-gumshoe-mode
-      (global-gumshoe-mode-enable)
-    (gumshoe--revert gumshoe--global gumshoe--global-timer)))
+      (gumshoe--mode-init gumshoe--global-backlog
+                          gumshoe--global-timer
+                          gumshoe-backtrack-back
+                          gumshoe-backtrack-forward)
+    (gumshoe--revert gumshoe--global-backlog gumshoe--global-timer)))
 
-(defvar gumshoe--persp nil
-  "A class of gumshoe with perspective scope.")
+(defvar gumshoe--persp-backlog nil
+  "A class of gumshoe--backlog with perspective scope.")
 (defvar gumshoe--persp-timer nil
-  "Global idle timer that logs position for `gumshoe--persp’ after`gumshoe-idle-time'.")
+  "Global idle timer that logs position for `gumshoe--persp-backlog’ after`gumshoe-idle-time'.")
 (defun gumshoe--persp-created-callback ()
-  (setq gumshoe--persp (gumshoe)))
+  (setq gumshoe--persp-backlog (gumshoe--backlog)))
 (defun global-gumshoe-persp-mode-enable ()
   (require 'perspective)
-  (persp-make-variable-persp-local 'gumshoe--persp)
+  (persp-make-variable-persp-local 'gumshoe--persp-backlog)
   ;; Each new perspective must store its own gumshoe.
   ;; So global-gumshoe-persp-mode must be enabled at init.
-  ;; Just keep the gumshoe around after disable rather than
+  ;; Just keep the gumshoe--backlog around after disable rather than
   ;; trying to purge every reference. That’s probably what
   ;; the user wants anyway, to keep any old marks.
   (add-hook 'persp-created-hook
             #'gumshoe--persp-created-callback)
-  (gumshoe--mode-init gumshoe--persp
+  (gumshoe--mode-init gumshoe--persp-backlog
                       gumshoe--persp-timer
                       gumshoe-persp-backtrack-back
                       gumshoe-persp-backtrack-forward))
@@ -262,17 +260,12 @@ When enabled, Gumshoe logs point movements when they exceed the
   :global t
   (if global-gumshoe-persp-mode
       (global-gumshoe-persp-mode-enable)
-    (gumshoe--revert gumshoe--persp gumshoe--persp-timer)))
+    (gumshoe--revert gumshoe--persp-backlog gumshoe--persp-timer)))
 
-(defvar-local gumshoe--buf nil
-  "A class of gumshoe with buffer scope.")
+(defvar-local gumshoe--buf-backlog nil
+  "A class of gumshoe--backlog with buffer scope.")
 (defvar gumshoe--buf-timer nil
-  "Global idle timer that logs position for `gumshoe--buf’ after `gumshoe-idle-time'.")
-(defun global-gumshoe-buf-mode-enable ()
-  (gumshoe--mode-init gumshoe--buf
-                      gumshoe--buf-timer
-                      gumshoe-buf-backtrack-back
-                      gumshoe-buf-backtrack-forward))
+  "Global idle timer that logs position for `gumshoe--buf-backlog’ after `gumshoe-idle-time'.")
 (define-minor-mode global-gumshoe-buf-mode
   "Toggle global Gumshoe minor mode.
 
@@ -289,8 +282,11 @@ When enabled, Gumshoe logs point movements when they exceed the
   :group 'gumshoe
   :global t
   (if global-gumshoe-buf-mode
-      (global-gumshoe-buf-mode-enable)
-    (gumshoe--revert gumshoe--buf gumshoe--buf-timer)))
+      (gumshoe--mode-init gumshoe--buf-backlog
+                          gumshoe--buf-timer
+                          gumshoe-buf-backtrack-back
+                          gumshoe-buf-backtrack-forward)
+    (gumshoe--revert gumshoe--buf-backlog gumshoe--buf-timer)))
 
-(provide 'gumshoe)
+(provide 'gumshoe--backlog)
 ;;; gumshoe.el ends here
