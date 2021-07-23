@@ -28,15 +28,15 @@ I just use straight+use-package like so:
     ;; define a command for autocompletion of the gumshoe--global log if you’d like:
     (defun consult-gumshoe-global ()
       (interactive)
-      (consult-global-mark (ring-elements (oref gumshoe--global log))))
+      (consult-global-mark (ring-elements (oref gumshoe--global-backlog log))))
     ;; Similarly, for the persp local gumshoe--persp log, assuming perspectives is installed:
     (defun consult-gumshoe-persp ()
       (interactive)
-      (consult-global-mark (ring-elements (oref gumshoe--persp log))))
+      (consult-global-mark (ring-elements (oref gumshoe--persp-backlog log))))
     ;; Similarly, for the buffer local gumshoe--persp log:
     (defun consult-gumshoe-buf ()
       (interactive)
-      (consult-global-mark (ring-elements (oref gumshoe--buf log)))))
+      (consult-global-mark (ring-elements (oref gumshoe--buf-backlog log)))))
 #+end_src
 And no need to use all of that of course (though I do), just pick what you like.
 
