@@ -3,7 +3,9 @@
 ;; Copyright (C) 2021 overdr0ne
 
 ;; Author: overdr0ne
+;; Version: 1.0
 ;; Keywords: tools
+;; URL: https://github.com/Overdr0ne/gumshoe
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -18,7 +20,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-;;; Commentary:
+;;; Commentary: Gumshoe is a collection of global minor modes that quietly
+;;; keep tabs on your Point movements so you can retrace your steps if you
+;;; ever need a reminder of where you’ve been. Each mode keeps a log local
+;;; to some scope.
+
 
 ;; Gumshoes log any movements outside their minimum follow distance.
 ;; They will also log any position you idle at for a while.

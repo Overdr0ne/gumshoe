@@ -3,7 +3,7 @@
 [[./noir.jpg]]
 
 * Introduction
-Gumshoe is a global minor mode that quietly keeps tabs on your Point movements so you can retrace your steps if you ever need a reminder where you’ve been.
+Gumshoe is a collection of global minor modes that quietly keep tabs on your Point movements so you can retrace your steps if you ever need a reminder of where you’ve been. Each mode keeps a log local to some scope.
 
 [[./demo.gif]]
 (This demonstrates the non-built-in consult-gumshoe-global command I describe below, because it’s the most visual. I usually just use gumshoe--backtrack-back/forward and its variants.)
