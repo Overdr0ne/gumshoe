@@ -1,4 +1,4 @@
-#+TITLE: Gumshoe: a spatial Point movement tracker
+#+TITLE: Gumshoe: scoped spatial and temporal Point movement tracking
 
 [[./noir.jpg]]
 
@@ -64,3 +64,11 @@ If Gumshoe doesn’t suit you, here are some more Point history tracking package
 - https://github.com/dgutov/point-stack/
 - https://github.com/rolandwalker/back-button
 - https://github.com/gilbertw1/better-jumper
+So why do we need gumshoe then?
+Gumshoe has:
+- temporal tracking
+- spatial tracking
+- extensible scoping: if you can make arbitrary variables local to your scope, you can make a gumshoe mode for that scope. Scoped logs work independently, and don’t interfere with the global-mark-ring.
+- integrates well with autocompletion
+- works ootb without much configuration or dependency on external packages
+Packages above may have one or two of these features, but changes on the order of a complete rewrite would be required to make them work like gumshoe. But comments are totally welcome if you’d like to open an issue.
