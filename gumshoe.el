@@ -40,7 +40,7 @@
   :prefix "gumshoe-")
 
 (defcustom gumshoe-log-len 100
-  "Length of gumshoe--backlog’s log ring-buffer."
+  "Length of gumshoe--backlog’s ring-buffer."
   :type 'integer)
 (defcustom gumshoe-follow-distance 15
   "Gumshoe logs movements beyond this Euclidean distance from previous entry."
@@ -116,11 +116,13 @@
           (ring-remove ring i))))))
 
 (defun gumshoe--ring-reset (ring)
+  "Reset all entries in RING to nil."
   (let ((i 0))
     (while (< i (ring-length ring))
       (ring-remove ring i))))
 
 (defun gumshoe--jump-to-marker (marker)
+  "Move to MARKER point and associated buffer."
   (let ((buf  (marker-buffer marker)))
     (when buf
       (pop-to-buffer buf)
@@ -131,11 +133,11 @@
   (with-slots (backtrackingp log index) self
     (setf backtrackingp t)
     (unless (ring-empty-p log)
-      (setf index (1+ index))
-      (gumshoe--jump-to-marker (ring-ref log index)))))
+      (gumshoe--jump-to-marker (ring-ref log index))
+      (setf index (1+ index)))))
 
 (cl-defmethod backtrack-forward ((self gumshoe--backlog))
-  "Jump forward one position in the backlog."
+  "Jump forward one position in the SELF backlog."
   (with-slots (backtrackingp log index) self
     (setf backtrackingp t)
     (unless (or (ring-empty-p log)
@@ -143,63 +145,70 @@
       (setf index (1- index))
       (gumshoe--jump-to-marker (ring-ref log index)))))
 
-(defun gumshoe--timer-callback (gumshoe-var)
-  (unless (symbol-value gumshoe-var)
-    (set gumshoe-var (gumshoe--backlog)))
-  (unless (oref (symbol-value gumshoe-var) backtrackingp)
-    (gumshoe--log-current-position (oref (symbol-value gumshoe-var) log))))
+(defun gumshoe--timer-callback (backlog-var)
+  "Called by timer to log current position in BACKLOG-VAR."
+  (unless (symbol-value backlog-var)
+    (set backlog-var (gumshoe--backlog)))
+  (unless (oref (symbol-value backlog-var) backtrackingp)
+    (gumshoe--log-current-position (oref (symbol-value backlog-var) log))))
 
-(defun start-timer (gumshoe-var timer-var)
-  "Start the idle timer to log GUMSHOE-VAR position by name.
+(defun gumshoe--start-timer (backlog-var timer-var)
+  "Start TIMER-VAR timer to log BACKLOG-VAR position by name.
 
 Set TIMER-VAR globally such that it can be cancelled on revert."
   (set timer-var
        (run-with-idle-timer gumshoe-idle-time t
-                            (apply-partially #'gumshoe--timer-callback gumshoe-var))))
+                            (apply-partially #'gumshoe--timer-callback backlog-var))))
 
-(defun gumshoe--pre-command-callback (gumshoe-var)
-  (unless (symbol-value gumshoe-var)
-    (set gumshoe-var (gumshoe--backlog)))
-  (track (symbol-value gumshoe-var)))
+(defun gumshoe--pre-command-callback (backlog-var)
+  "Triggers tracking for BACKLOG-VAR, initializing it if necessary."
+  (unless (symbol-value backlog-var)
+    (set backlog-var (gumshoe--backlog)))
+  (track (symbol-value backlog-var)))
 
-(defun gumshoe--kill-buffer-callback (gumshoe-var)
-  (when (symbol-value gumshoe-var)
-    (gumshoe--ring-clean (oref (symbol-value gumshoe-var) log))))
+(defun gumshoe--kill-buffer-callback (backlog-var)
+  "Garbage collect dangling markers for killed buffer."
+  (when (symbol-value backlog-var)
+    (gumshoe--ring-clean (oref (symbol-value backlog-var) log))))
 
-(defun gumshoe--add-hooks (gumshoe-var)
-  "Add hooks using the GUMSHOE-VAR by name.
+(defun gumshoe--add-hooks (backlog-var)
+  "Add hooks using the BACKLOG-VAR by name.
 
 Reference the variable by name because the value will change depending on context."
   (add-hook 'pre-command-hook
-            (apply-partially #'gumshoe--pre-command-callback gumshoe-var))
-  ;; garbage collect dangling markers for killed buffer
+            (apply-partially #'gumshoe--pre-command-callback backlog-var))
   (add-hook 'kill-buffer-hook
-            (apply-partially #'gumshoe--kill-buffer-callback gumshoe-var)))
+            (apply-partially #'gumshoe--kill-buffer-callback backlog-var)))
 
-(defmacro gumshoe--make-commands (gumshoe-var backtrack-back-name backtrack-forward-name)
-  "Make the command interface for GUMSHOE-VAR by name.
+(defmacro gumshoe--make-commands (backlog-var backtrack-back-name backtrack-forward-name)
+  "Make the command interface for BACKLOG-VAR by name.
 
 BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking commands."
   `(progn
-     (defun ,backtrack-back-name () (interactive) (backtrack-back ,gumshoe-var))
-     (defun ,backtrack-forward-name () (interactive) (backtrack-forward ,gumshoe-var))))
+     (defun ,backtrack-back-name () (interactive) (backtrack-back ,backlog-var))
+     (defun ,backtrack-forward-name () (interactive) (backtrack-forward ,backlog-var))))
 
-(defmacro gumshoe--mode-init (gumshoe-var timer-var backtrack-back-name backtrack-forward-name)
-  "Initialize gumshoe mode for GUMSHOE-VAR.
+(defmacro gumshoe--mode-init (backlog-var timer-var backtrack-back-name backtrack-forward-name)
+  "Initialize gumshoe mode for BACKLOG-VAR.
+
+Set timer for TIMER-VAR.
 
 Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
   `(progn
-     (gumshoe--add-hooks ',gumshoe-var)
-     (start-timer ',gumshoe-var ',timer-var)
-     (gumshoe--make-commands ,gumshoe-var ,backtrack-back-name ,backtrack-forward-name)))
+     (gumshoe--add-hooks ',backlog-var)
+     (gumshoe--start-timer ',backlog-var ',timer-var)
+     (gumshoe--make-commands ,backlog-var ,backtrack-back-name ,backtrack-forward-name)))
 
-(defmacro gumshoe--revert (gumshoe-var timer-var)
-  "Shutdown Gumshoe mode if it is not already."
+(defmacro gumshoe--revert (backlog-var timer-var)
+  "Shutdown Gumshoe mode if it is not already.
+
+Variables are not purged, because it’s easier, and because that’s probably
+what users want anyway, to keep old marks."
   `(progn
      (remove-hook 'pre-command-hook
-                  (apply-partially #'gumshoe--pre-command-callback ,gumshoe-var))
+                  (apply-partially #'gumshoe--pre-command-callback ,backlog-var))
      (remove-hook 'kill-buffer-hook
-                  (apply-partially #'gumshoe--kill-buffer-callback ,gumshoe-var))
+                  (apply-partially #'gumshoe--kill-buffer-callback ,backlog-var))
      (cancel-timer ,timer-var)))
 
 (defvar gumshoe--global-backlog nil
@@ -233,16 +242,16 @@ When enabled, Gumshoe logs point movements when they exceed the
 (defvar gumshoe--persp-timer nil
   "Global idle timer that logs position for `gumshoe--persp-backlog’ after`gumshoe-idle-time'.")
 (defun gumshoe--persp-created-callback ()
+  "Create a new backlog for every new persp.
+
+This wouldn’t be necessary if persp initialized local variables to
+nil, because there is no other way to know generically whether that
+variable actually belongs to that perspective generically."
   (setq gumshoe--persp-backlog (gumshoe--backlog)))
 ;;;###autoload
 (defun global-gumshoe-persp-mode-enable ()
   (require 'perspective)
   (persp-make-variable-persp-local 'gumshoe--persp-backlog)
-  ;; Each new perspective must store its own gumshoe.
-  ;; So global-gumshoe-persp-mode must be enabled at init.
-  ;; Just keep the gumshoe--backlog around after disable rather than
-  ;; trying to purge every reference. That’s probably what
-  ;; the user wants anyway, to keep any old marks.
   (add-hook 'persp-created-hook
             #'gumshoe--persp-created-callback)
   (gumshoe--mode-init gumshoe--persp-backlog
