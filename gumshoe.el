@@ -33,6 +33,7 @@
 ;;; Code:
 
 (require 'eieio)
+(require 'cl)
 
 (defgroup gumshoe nil
   "The gumshoe movement tracker."
