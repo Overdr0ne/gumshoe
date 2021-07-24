@@ -310,5 +310,5 @@ When enabled, Gumshoe logs point movements when they exceed the
                           gumshoe-buf-backtrack-forward)
     (gumshoe--revert gumshoe--buf-backlog gumshoe--buf-timer)))
 
-(provide 'gumshoe--backlog)
+(provide 'gumshoe)
 ;;; gumshoe.el ends here
