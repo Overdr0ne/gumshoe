@@ -1,4 +1,4 @@
-;;; gumshoe.el --- tracks your movements... -*- lexical-binding: t; -*-
+;;; gumshoe.el --- Tracks your movements...  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021 overdr0ne
 
@@ -20,11 +20,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-;;; Commentary: Gumshoe is a collection of global minor modes that quietly
-;;; keep tabs on your Point movements so you can retrace your steps if you
-;;; ever need a reminder of where you’ve been. Each mode keeps a log local
-;;; to some scope.
-
+;;; Commentary:
+;; Gumshoe is a collection of global minor modes that quietly
+;; keep tabs on your Point movements so you can retrace your steps if you
+;; ever need a reminder of where you’ve been.  Each mode keeps a log local
+;; to some scope.
 
 ;; Gumshoes log any movements outside their minimum follow distance.
 ;; They will also log any position you idle at for a while.
@@ -33,7 +33,9 @@
 ;;; Code:
 
 (require 'eieio)
-(require 'cl)
+(require 'cl-lib)
+(require 'ring)
+(require 'calc-misc)
 
 (defgroup gumshoe nil
   "The gumshoe movement tracker."
@@ -87,13 +89,13 @@
      gumshoe-follow-distance))
 
 (defun gumshoe--log-current-position (ring)
-  "Add current position to the ring as a marker."
+  "Add current position to the RING as a marker."
   (when (or (ring-empty-p ring)
             (not (equal (point-marker) (ring-ref ring 0))))
     (ring-insert ring (point-marker))))
 
 (cl-defmethod track ((self gumshoe--backlog))
-  "Log the current position if necessary."
+  "Log the current position to SELF if necessary."
   (unless self (error "Gumshoe argument self is nil"))
   (with-slots (backtrackingp log index) self
     (unless (or backtrackingp (minibufferp))
@@ -130,7 +132,7 @@
       (goto-char marker))))
 
 (cl-defmethod backtrack-back ((self gumshoe--backlog))
-  "Jump backward one position in the backlog."
+  "Jump backward one position in SELF."
   (with-slots (backtrackingp log index) self
     (setf backtrackingp t)
     (unless (ring-empty-p log)
@@ -172,7 +174,7 @@ Set TIMER-VAR globally such that it can be cancelled on revert."
   (track (symbol-value backlog-var)))
 
 (defun gumshoe--kill-buffer-callback (backlog-var)
-  "Garbage collect dangling markers for killed buffer."
+  "Garbage collect dangling markers in BACKLOG-VAR for killed buffer."
   (when (symbol-value backlog-var)
     (gumshoe--ring-clean (oref (symbol-value backlog-var) log))))
 
@@ -205,7 +207,7 @@ Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
      (gumshoe--make-commands ,backlog-var ,backtrack-back-name ,backtrack-forward-name)))
 
 (defmacro gumshoe--revert (backlog-var timer-var)
-  "Shutdown Gumshoe mode if it is not already.
+  "Revert BACKLOG-VAR and TIMER-VAR.
 
 Variables are not purged, because it’s easier, and because that’s probably
 what users want anyway, to keep old marks."
@@ -254,7 +256,8 @@ nil, because there is no other way to know generically whether that
 variable actually belongs to that perspective generically."
   (setq gumshoe--persp-backlog (gumshoe--backlog)))
 ;;;###autoload
-(defun global-gumshoe-persp-mode-enable ()
+(defun gumshoe--global-gumshoe-persp-mode-enable ()
+  "Enable the `global-gumshoe-persp-mode’."
   (require 'perspective)
   (persp-make-variable-persp-local 'gumshoe--persp-backlog)
   (add-hook 'persp-created-hook
@@ -281,7 +284,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   :group 'gumshoe
   :global t
   (if global-gumshoe-persp-mode
-      (global-gumshoe-persp-mode-enable)
+      (gumshoe--global-gumshoe-persp-mode-enable)
     (gumshoe--revert gumshoe--persp-backlog gumshoe--persp-timer)))
 
 (defvar-local gumshoe--buf-backlog nil
