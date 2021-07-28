@@ -1,4 +1,4 @@
-;;; gumshoe.el --- Tracks your movements...  -*- lexical-binding: t; -*-
+;;; gumshoe.el --- Scoped spatial and temporal POINT movement tracking -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021 overdr0ne
 
