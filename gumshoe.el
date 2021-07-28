@@ -222,6 +222,7 @@ what users want anyway, to keep old marks."
   "A class of gumshoe--backlog with global scope.")
 (defvar gumshoe--global-timer nil
   "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'.")
+;;;###autoload
 (define-minor-mode global-gumshoe-mode
   "Toggle global Gumshoe minor mode.
 
@@ -255,7 +256,6 @@ This wouldn’t be necessary if persp initialized local variables to
 nil, because there is no other way to know generically whether that
 variable actually belongs to that perspective generically."
   (setq gumshoe--persp-backlog (gumshoe--backlog)))
-;;;###autoload
 (defun gumshoe--global-gumshoe-persp-mode-enable ()
   "Enable the `global-gumshoe-persp-mode’."
   (require 'perspective)
