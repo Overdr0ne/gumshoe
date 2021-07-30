@@ -115,7 +115,7 @@
     (while (< i (ring-length ring))
       (let ((marker (ring-ref ring i)))
         (if (marker-buffer marker)
-            (incf i)
+            (cl-incf i)
           (ring-remove ring i))))))
 
 (defun gumshoe--ring-reset (ring)
@@ -137,9 +137,9 @@
     (setf backtrackingp t)
     (unless (ring-empty-p log)
       (when (equal (ring-ref log index) (point-marker))
-        (incf index))
+        (cl-incf index))
       (gumshoe--jump-to-marker (ring-ref log index))
-      (incf index))))
+      (cl-incf index))))
 
 (cl-defmethod backtrack-forward ((self gumshoe--backlog))
   "Jump forward one position in the SELF backlog."
@@ -147,9 +147,9 @@
     (setf backtrackingp t)
     (unless (or (ring-empty-p log)
                 (eq index 0))
-      (decf index)
+      (cl-decf index)
       (when (equal (ring-ref log index) (point-marker))
-        (decf index))
+        (cl-decf index))
       (gumshoe--jump-to-marker (ring-ref log index)))))
 
 (defun gumshoe--timer-callback (backlog-var)
