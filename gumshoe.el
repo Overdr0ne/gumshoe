@@ -4,6 +4,7 @@
 
 ;; Author: overdr0ne
 ;; Version: 1.0
+;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: tools
 ;; URL: https://github.com/Overdr0ne/gumshoe
 
