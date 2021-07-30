@@ -250,6 +250,9 @@ When enabled, Gumshoe logs point movements when they exceed the
   "A class of symbol `gumshoe--backlog' with perspective scope.")
 (defvar gumshoe--persp-timer nil
   "Global idle timer that logs position for `gumshoe--persp-backlog’ after`gumshoe-idle-time'.")
+;; suppress warning that this function isn’t defined because perspective
+;; is required
+(declare-function persp-make-variable-persp-local "perspective.el")
 (defun gumshoe--persp-created-callback ()
   "Create a new backlog for every new persp.
 
