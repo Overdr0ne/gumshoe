@@ -219,7 +219,7 @@ what users want anyway, to keep old marks."
      (cancel-timer ,timer-var)))
 
 (defvar gumshoe--global-backlog nil
-  "A class of gumshoe--backlog with global scope.")
+  "A class of symbol `gumshoe--backlog' with global scope.")
 (defvar gumshoe--global-timer nil
   "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'.")
 ;;;###autoload
@@ -246,7 +246,7 @@ When enabled, Gumshoe logs point movements when they exceed the
     (gumshoe--revert gumshoe--global-backlog gumshoe--global-timer)))
 
 (defvar gumshoe--persp-backlog nil
-  "A class of gumshoe--backlog with perspective scope.")
+  "A class of symbol `gumshoe--backlog' with perspective scope.")
 (defvar gumshoe--persp-timer nil
   "Global idle timer that logs position for `gumshoe--persp-backlog’ after`gumshoe-idle-time'.")
 (defun gumshoe--persp-created-callback ()
@@ -257,7 +257,7 @@ nil, because there is no other way to know generically whether that
 variable actually belongs to that perspective generically."
   (setq gumshoe--persp-backlog (gumshoe--backlog)))
 (defun gumshoe--global-gumshoe-persp-mode-enable ()
-  "Enable the `global-gumshoe-persp-mode’."
+  "Enable the symbol `global-gumshoe-persp-mode’."
   (require 'perspective)
   (persp-make-variable-persp-local 'gumshoe--persp-backlog)
   (add-hook 'persp-created-hook
