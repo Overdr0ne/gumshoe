@@ -36,7 +36,6 @@
 (require 'eieio)
 (require 'cl-lib)
 (require 'ring)
-(require 'calc-misc)
 
 (defgroup gumshoe nil
   "The gumshoe movement tracker."
@@ -82,7 +81,7 @@
          (dcolumn (abs (- column
                           (current-column))))
          (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
-    (sqrt (+ (math-pow dline 2) (math-pow dcolumn-scaled 2)))))
+    (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))))
 
 (defun gumshoe--end-of-leash-p (last-mark)
   "Check if LAST-MARK is outside gumshoe’s boundary."
