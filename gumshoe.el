@@ -56,6 +56,12 @@
   "Gumshoe automatically logs your position if you’ve been idle at POINT for this amount of time."
   :type 'integer)
 
+(defcustom gumshoe-display-buffer-action '((display-buffer-reuse-window display-buffer-same-window))
+  "`display-buffer-action’ to use when jumping through the backlog.
+
+See `display-buffer' for more information"
+  :type 'list)
+
 (defclass gumshoe--backlog ()
   ((log :initform (make-ring gumshoe-log-len)
         :documentation "Ring-buffer to remember the previous editing position.")
@@ -128,7 +134,7 @@
   "Move to MARKER point and associated buffer."
   (let ((buf  (marker-buffer marker)))
     (when buf
-      (pop-to-buffer buf)
+      (pop-to-buffer buf gumshoe-display-buffer-action)
       (goto-char marker))))
 
 (cl-defmethod backtrack-back ((self gumshoe--backlog))
