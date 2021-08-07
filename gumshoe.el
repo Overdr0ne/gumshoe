@@ -56,8 +56,8 @@
   "Gumshoe automatically logs your position if you’ve been idle at POINT for this amount of time."
   :type 'integer)
 
-(defcustom gumshoe-display-buffer-action nil
-  "Which `display-buffer' ACTION argument to use when switching to another buffer.
+(defcustom gumshoe-display-buffer-action '((display-buffer-reuse-window display-buffer-same-window))
+  "`display-buffer-action’ to use when jumping through the backlog.
 
 See `display-buffer' for more information"
   :type 'list)
