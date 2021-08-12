@@ -100,7 +100,7 @@ See `display-buffer' for more information"
             (not (equal (point-marker) (ring-ref ring 0))))
     (ring-insert ring (point-marker))))
 
-(cl-defmethod track ((self gumshoe--backlog))
+(cl-defmethod gumshoe--track ((self gumshoe--backlog))
   "Log the current position to SELF if necessary."
   (unless self (error "Gumshoe argument self is nil"))
   (with-slots (backtrackingp log index) self
@@ -137,7 +137,7 @@ See `display-buffer' for more information"
       (pop-to-buffer buf gumshoe-display-buffer-action)
       (goto-char marker))))
 
-(cl-defmethod backtrack-back ((self gumshoe--backlog))
+(cl-defmethod gumshoe--backtrack-back ((self gumshoe--backlog))
   "Jump backward one position in SELF."
   (with-slots (backtrackingp log index) self
     (setf backtrackingp t)
@@ -147,7 +147,7 @@ See `display-buffer' for more information"
       (gumshoe--jump-to-marker (ring-ref log index))
       (cl-incf index))))
 
-(cl-defmethod backtrack-forward ((self gumshoe--backlog))
+(cl-defmethod gumshoe--backtrack-forward ((self gumshoe--backlog))
   "Jump forward one position in the SELF backlog."
   (with-slots (backtrackingp log index) self
     (setf backtrackingp t)
@@ -177,7 +177,7 @@ Set TIMER-VAR globally such that it can be cancelled on revert."
   "Triggers tracking for BACKLOG-VAR, initializing it if necessary."
   (unless (symbol-value backlog-var)
     (set backlog-var (gumshoe--backlog)))
-  (track (symbol-value backlog-var)))
+  (gumshoe--track (symbol-value backlog-var)))
 
 (defun gumshoe--kill-buffer-callback (backlog-var)
   "Garbage collect dangling markers in BACKLOG-VAR for killed buffer."
@@ -198,8 +198,8 @@ Reference the variable by name because the value will change depending on contex
 
 BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking commands."
   `(progn
-     (defun ,backtrack-back-name () (interactive) (backtrack-back ,backlog-var))
-     (defun ,backtrack-forward-name () (interactive) (backtrack-forward ,backlog-var))))
+     (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack-back ,backlog-var))
+     (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack-forward ,backlog-var))))
 
 (defmacro gumshoe--mode-init (backlog-var timer-var backtrack-back-name backtrack-forward-name)
   "Initialize gumshoe mode for BACKLOG-VAR.
