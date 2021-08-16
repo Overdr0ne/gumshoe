@@ -1,3 +1,5 @@
+[[https://melpa.org/#/gumshoe][file:https://melpa.org/packages/gumshoe-badge.svg]]
+
 #+TITLE: Gumshoe: scoped spatial and temporal Point movement tracking
 
 [[./noir.jpg]]
