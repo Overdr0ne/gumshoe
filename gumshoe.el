@@ -65,10 +65,16 @@ See `display-buffer' for more information"
 (defclass gumshoe--backlog ()
   ((log :initform (make-ring gumshoe-log-len)
         :documentation "Ring-buffer to remember the previous editing position.")
+   (filtered :initform nil
+             :documentation "The filtered log list used when backtracking.")
    (index :initform 0
           :documentation "Current index backwards into the log when backtracking.")
    (backtrackingp :initform nil
                   :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
+   (startp :initform nil
+           :documentation "Flag indicating when backtracking has begun.")
+   (msg :initform ""
+        :documentation "Stores info for the user during backtracking.")
    (:documentation "Gumshoe’s backlog for tracking POINT positions.")))
 
 (defclass gumshoe--entry ()
@@ -170,13 +176,6 @@ See `display-buffer' for more information"
   (> (gumshoe--distance-to last-entry)
      gumshoe-follow-distance))
 
-(defun gumshoe--ring-current-index (ring)
-  (nth 1 ring))
-(defun gumshoe--ring-next-index (ring)
-  (ring-plus1 (gumshoe--ring-current-index ring)
-              (ring-size ring)))
-(defun gumshoe--gen-id (ring)
-  (number-to-string (gumshoe--ring-next-index ring)))
 (cl-defmethod gumshoe--equal ((self gumshoe--entry) (other gumshoe--entry))
   "Is SELF equal to OTHER."
   (and (equal (oref self perspective) (oref other perspective))
@@ -188,7 +187,6 @@ See `display-buffer' for more information"
   (let ((new-entry (gumshoe--entry)))
     (when (or (ring-empty-p ring)
               (not (gumshoe--equal new-entry (ring-ref ring 0))))
-      ;; (push (gumshoe--gen-id ring) new-entry)
       (ring-insert ring new-entry))))
 
 (cl-defmethod gumshoe--changed-file-p ((last-entry gumshoe--entry))
@@ -198,20 +196,18 @@ See `display-buffer' for more information"
 (cl-defmethod gumshoe--track ((self gumshoe--backlog))
   "Log the current position to SELF if necessary."
   (unless self (error "Gumshoe argument self is nil"))
-  (with-slots (backtrackingp log index) self
-    (if (not (equal index prev-index))
-        (setf backtrackingp t)
-      (setf backtrackingp nil
-            index -1)
-      (unless (or backtrackingp (minibufferp))
-        (setf index 0)
+  (with-slots (backtrackingp startp log index) self
+    (unless (some (apply-partially #'equal this-command)
+                  '(gumshoe-backtrack-back gumshoe-backtrack-forward))
+      (setf startp t)
+      (setf backtrackingp nil)
+      (unless (minibufferp)
         (if (ring-empty-p log)
             (gumshoe--log-current-position log)
           (let ((last-entry (ring-ref log 0)))
             (when (or (gumshoe--changed-file-p last-entry)
                       (gumshoe--end-of-leash-p last-entry))
-              (gumshoe--log-current-position log))))))
-    ))
+              (gumshoe--log-current-position log))))))))
 
 (defun gumshoe--ring-reset (ring)
   "Reset all entries in RING to nil."
@@ -219,55 +215,35 @@ See `display-buffer' for more information"
     (while (< i (ring-length ring))
       (ring-remove ring i))))
 
-(defun gumshoe-backtrack ()
-  (interactive)
-  (gumshoe--backtrack nil))
-
-(setq gumshoe-backtrack-map
-      '((next-entry . ("n" "i"))
-        (previous-entry . ("p" "o"))))
-(defun gumshoe--backtrack (filter)
-  (let* ((log (oref gumshoe--global-backlog log))
-         (index 0)
-         (filtered (if filter
-                       (mapcar filter (ring-elements log))
-                     (ring-elements log)))
-         (cmd "")
-         (continue t)
-         (prompt (format "Gumshoe: entry #%i" (length filtered)))
-         (next-entry-map (alist-get 'next-entry gumshoe-backtrack-map))
-         (next-entry-cmds (mapcar #'string-to-char next-entry-map))
-         (next-entry-str (string-join next-entry-map ", "))
-         (previous-entry-map (alist-get 'previous-entry gumshoe-backtrack-map))
-         (previous-entry-cmds (mapcar #'string-to-char previous-entry-map))
-         (previous-entry-str (string-join previous-entry-map ", "))
-         (nav-string (format "([%s]: next entry, [%s]: previous entry)"
-                             next-entry-str previous-entry-str)))
-
-    (if filtered
-        (while continue
-          (gumshoe--jump (nth index filtered))
-
-          (setf prompt (concat prompt "\t" nav-string))
-          (setf cmd (read-char-exclusive prompt))
-          (cond
-           ((some (apply-partially #'equal cmd) next-entry-cmds)
-            (cl-decf index))
-           ((some (apply-partially #'equal cmd) previous-entry-cmds)
-            (cl-incf index))
-           (t (setf continue nil)))
-
-          (cond
-           ((>= index (length filtered))
-            (setf prompt "This is the earliest entry...")
-            (setf index (- (length filtered) 1)))
-           ((< index 0)
-            (setf prompt "This is the latest entry...")
-            (setf index 0))
-           (t
-            (setf prompt (format "Gumshoe: entry #%i"
-                                 (- (length filtered) index))))))
-      (message "Gumshoe: I haven’t recorded any entries here yet..."))))
+(cl-defmethod gumshoe--increment-index ((self gumshoe--backlog) incrementer)
+  (with-slots (index msg filtered) self
+    (setf index (funcall incrementer index 1))
+    (cond
+     ((>= index (length filtered))
+      (setf msg "This is the earliest entry...")
+      (setf index (- (length filtered) 1)))
+     ((< index 0)
+      (setf msg "This is the latest entry...")
+      (setf index 0))
+     (t
+      (setf msg (format "Gumshoe: entry #%i"
+                        (- (length filtered) index)))))))
+(cl-defmethod gumshoe--init-backtracking ((self gumshoe--backlog) filter)
+  (with-slots (log filtered msg startp index) self
+    (setf filtered (if filter (seq-filter filter (ring-elements log)) (ring-elements log)))
+    (setf msg (format "Gumshoe: entry #%i" (length filtered)))
+    (setf startp nil)
+    (setf index 0)))
+(cl-defmethod gumshoe--backtrack ((self gumshoe--backlog) incrementer filter)
+  (if (oref self startp)
+      (gumshoe--init-backtracking self filter)
+    (gumshoe--increment-index self incrementer))
+  (with-slots (backtrackingp index filtered msg) self
+    (if (not filtered)
+        (setf msg "I haven’t recorded any entries here yet...")
+      (setf backtrackingp t)
+      (gumshoe--jump (nth index filtered)))
+    (message msg)))
 
 (defun gumshoe--timer-callback (backlog-var)
   "Called by timer to log current position in BACKLOG-VAR."
@@ -284,7 +260,7 @@ Set TIMER-VAR globally such that it can be cancelled on revert."
        (run-with-idle-timer gumshoe-idle-time t
                             (apply-partially #'gumshoe--timer-callback backlog-var))))
 
-(defun gumshoe--post-command-callback (backlog-var)
+(defun gumshoe--pre-command-callback (backlog-var)
   "Triggers tracking for BACKLOG-VAR, initializing it if necessary."
   (unless (symbol-value backlog-var)
     (set backlog-var (gumshoe--backlog)))
@@ -294,8 +270,8 @@ Set TIMER-VAR globally such that it can be cancelled on revert."
   "Add hooks using the BACKLOG-VAR by name.
 
 Reference the variable by name because the value will change depending on context."
-  (add-hook 'post-command-hook
-            (apply-partially #'gumshoe--post-command-callback backlog-var)))
+  (add-hook 'pre-command-hook
+            (apply-partially #'gumshoe--pre-command-callback backlog-var)))
 
 (defmacro gumshoe--make-commands (backtrack-back-name backtrack-forward-name peruse-name filter-name)
   "Make the command interface for BACKLOG-VAR by name.
@@ -325,8 +301,8 @@ Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
 (defmacro gumshoe--revert ()
   "Revert BACKLOG-VAR and TIMER-VAR."
   `(progn
-     (remove-hook 'post-command-hook
-                  (apply-partially #'gumshoe--post-command-callback gumshoe--global-backlog))
+     (remove-hook 'pre-command-hook
+                  (apply-partially #'gumshoe--pre-command-callback gumshoe--global-backlog))
      (cancel-timer gumshoe--global-timer)))
 
 (defvar gumshoe--global-backlog nil
