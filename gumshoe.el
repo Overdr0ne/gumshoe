@@ -48,7 +48,7 @@
 (defcustom gumshoe-follow-distance 15
   "Gumshoe logs movements beyond this Euclidean distance from previous entry."
   :type 'integer)
-(defcustom gumshoe-horizontal-scale 3
+(defcustom gumshoe-horizontal-scale 4
   "Horizontal follow distances are divided by this factor."
   :type 'integer)
 (defcustom gumshoe-idle-time 60
@@ -57,6 +57,11 @@
 (defcustom gumshoe-show-footprints-p t
   "Display footprint overlays when backtracking?"
   :type 'boolean)
+
+(defface gumshoe--footprint-face
+  '((t :inherit highlight
+       :weight "bold"))
+  "Face for footprint overlays.")
 
 (defcustom gumshoe-display-buffer-action '((display-buffer-reuse-window display-buffer-same-window))
   "`display-buffer-action’ to use when jumping through the backlog.
@@ -100,7 +105,7 @@ See `display-buffer' for more information"
 
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   (with-slots (buffer position) self
-    (switch-to-buffer buffer)
+    (pop-to-buffer buffer)
     (goto-char position)))
 
 (defclass gumshoe--pretty-entry ()
@@ -214,21 +219,25 @@ See `display-buffer' for more information"
                       (gumshoe--end-of-leash-p last-entry))
               (gumshoe--log-current-position log))))))))
 
-(defmethod gumshoe--mark-footprint ((self gumshoe--entry) )
+(defmethod gumshoe--mark-footprint ((self gumshoe--entry) id)
   (with-slots (position buffer) self
     (message (buffer-name buffer))
-    (let* ((begin position)
-           (end (+ begin 1))
-           (overlay (make-overlay begin end)))
+    (let* ((label (int-to-string id))
+           (begin position)
+           (end (+ begin (length label)))
+           (overlay (make-overlay begin end buffer)))
       (when (and buffer (> (buffer-size buffer) 1))
-        (overlay-put overlay 'face 'match))
+        (overlay-put overlay 'face 'gumshoe--footprint-face)
+        (overlay-put overlay 'display label))
       overlay)))
 (defmethod gumshoe--show-footprints ((self gumshoe--backlog))
   (with-slots (filtered footprints) self
     (setf footprints nil)
-    (dolist (entry filtered)
-      (push (gumshoe--mark-footprint entry)
-            footprints))))
+    (let ((i (length filtered)))
+      (dolist (entry filtered)
+       (push (gumshoe--mark-footprint entry i)
+             footprints)
+       (cl-decf i)))))
 (defmethod gumshoe--hide-footprints ((self gumshoe--backlog))
   (with-slots (footprints) self
     (while footprints
