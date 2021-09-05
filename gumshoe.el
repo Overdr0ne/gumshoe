@@ -90,7 +90,8 @@ See `display-buffer' for more information"
   ((filename :initform (buffer-file-name)
              :documentation "Ring-buffer to remember the previous editing position.")
    (buffer :initform (current-buffer)
-           :documentation "Ring-buffer to remember the previous editing position.")
+           :documentation "Ring-buffer to remember the previous editing position."
+           :printer buffer-file-name)
    (position :initform (point)
              :documentation "Current index backwards into the log when backtracking.")
    (line :initform (buffer-substring (line-beginning-position) (line-end-position))
@@ -107,34 +108,6 @@ See `display-buffer' for more information"
   (with-slots (buffer position) self
     (pop-to-buffer buffer)
     (goto-char position)))
-
-(defclass gumshoe--pretty-entry ()
-  ((filename :initform "" :initarg :filename
-             :documentation "Ring-buffer to remember the previous editing position.")
-   (buffer :initform "" :initarg :buffer
-           :documentation "Ring-buffer to remember the previous editing position.")
-   (position :initform "" :initarg :position
-             :documentation "Current index backwards into the log when backtracking.")
-   (line :initform "" :initarg :line
-         :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (time :initform "" :initarg :time
-         :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (mode :initform "" :initarg :mode
-         :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (perspective :initform "" :initarg :perspective
-                :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (:documentation "Gumshoe’s backlog for tracking POINT positions.")))
-
-(cl-defmethod gumshoe--prettify ((src gumshoe--entry))
-  (with-slots (filename buffer position line time mode perspective) src
-    (gumshoe--pretty-entry
-     :filename filename
-     :buffer (buffer-name buffer)
-     :position position
-     :line line
-     :time time
-     :mode mode
-     :perspective perspective)))
 
 (defun gumshoe--format-record (rec format-string slot-spec)
   (let* ((slot-vals (mapcar #'(lambda (slot) (slot-value rec slot)) slot-spec)))
@@ -156,8 +129,7 @@ See `display-buffer' for more information"
          (filtered-entries (if entry-filter
                                (seq-filter entry-filter entries)
                              entries))
-         (prettified-entries (mapcar #'gumshoe--prettify filtered-entries))
-         (entry-strings (gumshoe--format-records prettified-entries format-string slot-spec))
+         (entry-strings (gumshoe--format-records filtered-entries format-string slot-spec))
          (candidates (cl-mapcar #'list entry-strings filtered-entries))
          (candidate (completing-read prompt candidates)))
     (gumshoe--jump (cadr (assoc candidate candidates)))))
