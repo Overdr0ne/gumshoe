@@ -58,6 +58,14 @@
   "Display footprint overlays when backtracking?"
   :type 'boolean)
 
+(defcustom gumshoe-entry-type 'gumshoe--entry
+  "Type of gumshoe backlog entries."
+  :type 'symbol)
+
+(defcustom gumshoe--slot-schema '(buffer position line)
+  "Entry slots to view when browsing the log."
+  :type 'list)
+
 (defface gumshoe--footprint-face
   '((t :inherit highlight
        :weight "bold"))
@@ -72,6 +80,8 @@ See `display-buffer' for more information"
 (defclass gumshoe--backlog ()
   ((log :initform (make-ring gumshoe-log-len)
         :documentation "Ring-buffer to remember the previous editing position.")
+   (entry-type :initform 'gumshoe--entry
+               :documentation "Type of entries in the log ring.")
    (filtered :initform nil
              :documentation "The filtered log list used when backtracking.")
    (footprints :initform nil
@@ -100,9 +110,12 @@ See `display-buffer' for more information"
          :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
    (mode :initform (symbol-name major-mode)
          :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (perspective :initform (persp-current-name)
-                :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (:documentation "Gumshoe’s backlog for tracking POINT positions.")))
+   (:documentation "Entry class for Gumshoe’s backlog.")))
+
+(defclass gumshoe--persp-entry (gumshoe--entry)
+  ((perspective :initform (persp-current-name)
+                :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
+  (:documentation "Entry class for Gumshoe’s backlog, with perspectives."))
 
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   (with-slots (buffer position) self
@@ -115,10 +128,6 @@ See `display-buffer' for more information"
 
 (defun gumshoe--format-records (rec-list format-string slot-spec)
   (mapcar #'(lambda (rec) (gumshoe--format-record rec format-string slot-spec)) rec-list))
-
-(defcustom gumshoe--slot-schema '(perspective buffer position line)
-  "Entry slots to view when browsing the log."
-  :type 'list)
 
 (defun gumshoe--peruse (entries slot-spec &optional entry-filter)
   "Peruse the BACKLOG."
@@ -152,9 +161,9 @@ See `display-buffer' for more information"
          (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
     (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))))
 
-(defun gumshoe--log-current-position (ring)
-  "Log new backlog entry to RING."
-  (let ((new-entry (gumshoe--entry)))
+(defun gumshoe--log-current-position (ring entry-type)
+  "Log new backlog entry of ENTRY-TYPE to RING."
+  (let ((new-entry (funcall entry-type)))
     (when (or (ring-empty-p ring)
               (not (gumshoe--equal new-entry (ring-ref ring 0))))
       (ring-insert ring new-entry))))
@@ -175,7 +184,7 @@ See `display-buffer' for more information"
 (cl-defmethod gumshoe--track ((self gumshoe--backlog))
   "Log the current position to SELF if necessary."
   (unless self (error "Gumshoe argument self is nil"))
-  (with-slots (backtrackingp startp log index) self
+  (with-slots (backtrackingp startp log index entry-type) self
     (unless (some (apply-partially #'equal this-command)
                   '(gumshoe-backtrack-back gumshoe-backtrack-forward))
       (setf startp t)
@@ -183,14 +192,14 @@ See `display-buffer' for more information"
       (gumshoe--hide-footprints self)
       (unless (minibufferp)
         (if (ring-empty-p log)
-            (gumshoe--log-current-position log)
+            (gumshoe--log-current-position log entry-type)
           (let ((last-entry (ring-ref log 0)))
             (when (or (gumshoe--changed-file-p last-entry)
                       (gumshoe--end-of-leash-p last-entry))
-              (gumshoe--log-current-position log))))))))
+              (gumshoe--log-current-position log entry-type))))))))
 
 ;;; footprints
-(defmethod gumshoe--mark-footprint ((self gumshoe--entry) id)
+(cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id)
   (with-slots (position buffer) self
     (message (buffer-name buffer))
     (let* ((label (int-to-string id))
@@ -201,7 +210,7 @@ See `display-buffer' for more information"
         (overlay-put overlay 'face 'gumshoe--footprint-face)
         (overlay-put overlay 'display label))
       overlay)))
-(defmethod gumshoe--show-footprints ((self gumshoe--backlog))
+(cl-defmethod gumshoe--show-footprints ((self gumshoe--backlog))
   (with-slots (filtered footprints) self
     (setf footprints nil)
     (let ((i (length filtered)))
@@ -260,17 +269,24 @@ See `display-buffer' for more information"
       (gumshoe--jump (nth index filtered)))
     (message msg)))
 
-(defun gumshoe--timer-callback (backlog-var)
+;;; filter predicates
+(cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
+  "Check if entry in the current perspective."
+  (equal (oref entry buffer) (current-buffer)))
+(cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--entry))
+  "Check if entry in the current perspective."
+  (equal (oref entry perspective) (persp-current-name)))
+
+;;; interface setup
+(defvar gumshoe--global-backlog nil
+  "A class of symbol `gumshoe--backlog' with global scope.")
+(defvar gumshoe--global-timer nil
+  "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'.")
+(defun gumshoe--timer-callback (backlog)
   "Called by timer to log current position in BACKLOG-VAR."
-  (unless (symbol-value backlog-var)
-    (set backlog-var (gumshoe--backlog)))
-  (unless (oref (symbol-value backlog-var) backtrackingp)
-    (gumshoe--log-current-position (oref (symbol-value backlog-var) log))))
-(defun gumshoe--pre-command-callback (backlog-var)
-  "Triggers tracking for BACKLOG-VAR, initializing it if necessary."
-  (unless (symbol-value backlog-var)
-    (set backlog-var (gumshoe--backlog)))
-  (gumshoe--track (symbol-value backlog-var)))
+  (with-slots (backtrackingp log entry-type) backlog
+    (unless backtrackingp
+      (gumshoe--log-current-position log entry-type))))
 (defmacro gumshoe--make-commands (backtrack-back-name backtrack-forward-name peruse-name filter-name)
   "Make the command interface for BACKLOG-VAR by name.
 
@@ -284,39 +300,31 @@ BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking co
                         #',filter-name))
      (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack gumshoe--global-backlog #'+ #',filter-name))
      (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack gumshoe--global-backlog #'- #',filter-name))))
-
-(cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
-  "Check if entry in the current perspective."
-  (equal (oref entry buffer) (current-buffer)))
-(cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--entry))
-  "Check if entry in the current perspective."
-  (equal (oref entry perspective) (persp-current-name)))
-
-(defvar gumshoe--global-backlog nil
-  "A class of symbol `gumshoe--backlog' with global scope.")
-(defvar gumshoe--global-timer nil
-  "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'.")
 (defun gumshoe--mode-init ()
   "Initialize gumshoe mode for BACKLOG-VAR.
 
 Set timer for TIMER-VAR.
 
 Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
-  (add-hook 'pre-command-hook
-            (apply-partially #'gumshoe--pre-command-callback 'gumshoe--global-backlog))
-  (setf gumshoe--global-timer
-        (run-with-idle-timer gumshoe-idle-time t
-                             (apply-partially #'gumshoe--timer-callback 'gumshoe--global-backlog)))
+  (setf gumshoe--global-backlog (gumshoe--backlog))
   (gumshoe--make-commands gumshoe-backtrack-back gumshoe-backtrack-forward gumshoe-peruse-globally nil)
   (gumshoe--make-commands gumshoe-buf-backtrack-back gumshoe-buf-backtrack-forward gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
-  (gumshoe--make-commands gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe--peruse-in-persp gumshoe--in-current-persp-p))
+  ;; Ugly, but I really want perspectives to work automatically if possible
+  (when (and (require 'perspective nil t) (equal gumshoe-entry-type 'gumshoe--entry))
+    (setf gumshoe-entry-type 'gumshoe--persp-entry)
+    (gumshoe--make-commands gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe--peruse-in-persp gumshoe--in-current-persp-p))
 
-(defmacro gumshoe--revert ()
-  "Revert BACKLOG-VAR and TIMER-VAR."
-  `(progn
-     (remove-hook 'pre-command-hook
-                  (apply-partially #'gumshoe--pre-command-callback gumshoe--global-backlog))
-     (cancel-timer gumshoe--global-timer)))
+  (oset gumshoe--global-backlog entry-type gumshoe-entry-type)
+  (add-hook 'pre-command-hook
+            (apply-partially #'gumshoe--track gumshoe--global-backlog))
+  (setf gumshoe--global-timer
+        (run-with-idle-timer gumshoe-idle-time t
+                             (apply-partially #'gumshoe--timer-callback gumshoe--global-backlog))))
+(defun gumshoe--revert ()
+  "Revert `gumshoe--global-backlog’ and `gumshoe--global-timer’."
+  (remove-hook 'pre-command-hook
+               (apply-partially #'gumshoe--track gumshoe--global-backlog))
+  (cancel-timer gumshoe--global-timer))
 
 ;;;###autoload
 (define-minor-mode global-gumshoe-mode
@@ -338,14 +346,8 @@ When enabled, Gumshoe logs point movements when they exceed the
       (gumshoe--mode-init)
     (gumshoe--revert)))
 
-(defun global-gumshoe-persp-mode ()
-  "Toggle global Gumshoe minor mode."
-  nil)
-(make-obsolete 'global-gumshoe-persp-mode 'global-gumshoe-mode "2.0")
-(defun global-gumshoe-buf-mode ()
-  "Toggle global Gumshoe minor mode."
-  nil)
-(make-obsolete 'global-gumshoe-buf-mode 'global-gumshoe-mode "2.0")
+(define-obsolete-function-alias 'global-gumshoe-persp-mode 'global-gumshoe-mode "2.0")
+(define-obsolete-function-alias 'global-gumshoe-buf-mode 'global-gumshoe-mode "2.0")
 
 (provide 'gumshoe)
 ;;; gumshoe.el ends here
