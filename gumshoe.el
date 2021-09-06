@@ -62,7 +62,7 @@
   "Type of gumshoe backlog entries."
   :type 'symbol)
 
-(defcustom gumshoe--slot-schema '(buffer position line)
+(defcustom gumshoe-slot-schema '(buffer position line)
   "Entry slots to view when browsing the log."
   :type 'list)
 
@@ -296,7 +296,7 @@ BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking co
      (defun ,peruse-name ()
        (interactive)
        (gumshoe--peruse (ring-elements (oref gumshoe--global-backlog log))
-                        gumshoe--slot-schema
+                        gumshoe-slot-schema
                         #',filter-name))
      (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack gumshoe--global-backlog #'+ #',filter-name))
      (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack gumshoe--global-backlog #'- #',filter-name))))
