@@ -23,44 +23,32 @@ I just use straight+use-package like so:
     :config
     ;; The minor mode must be enabled to begin tracking
     (global-gumshoe-mode 1)
-    ;; Similarly for the perspective-local gumshoe:
-    (global-gumshoe-persp-mode 1)
-    ;; Similarly for the buffer-local gumshoe:
-    (global-gumshoe-buf-mode 1)
-    ;; define a command for autocompletion of the gumshoe--global log if you’d like:
-    (defun consult-gumshoe-global ()
-      (interactive)
-      (consult-global-mark (ring-elements (oref gumshoe--global-backlog log))))
-    ;; Similarly, for the persp local gumshoe--persp log, assuming perspectives is installed:
-    (defun consult-gumshoe-persp ()
-      (interactive)
-      (consult-global-mark (ring-elements (oref gumshoe--persp-backlog log))))
-    ;; Similarly, for the buffer local gumshoe--persp log:
-    (defun consult-gumshoe-buf ()
-      (interactive)
-      (consult-global-mark (ring-elements (oref gumshoe--buf-backlog log)))))
+    (setf gumshoe-slot-schema '(perspective buffer position line)))
 #+end_src
 And no need to use all of that of course (though I do), just pick what you like.
 
 * Usage
 - Once *global-gumshoe-mode* is enabled, gumshoe will automatically start recording movements into the *gumshoe--log* ringbuffer.
-- Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
-- Minibuffer autocompletion: [[https://github.com/minad/consult][Consult]] supports autocompletion of global(non buffer-local) marks. I’ve decided to remove built-in support for consult, because there are many great autocompletion packages out there. This is the one I use though, so here’s how I use it. You may define a consult function for gumshoe like so:
-#+begin_src elisp
-  (defun consult-gumshoe-global ()
-    (interactive)
-    (consult-global-mark (ring-elements (oref gumshoe--global log))))
-#+end_src
-I then just added that to my use-package definition.
 - Configure Gumshoe’s euclidean follow distance by customizing the *gumshoe--follow-distance* variable.
 - Configure Gumshoe’s idle time by customizing the *gumshoe-idle-time* variable.
 - Configure the number of locations logged with the *gumshoe-log-len* variable.
 - Horizontal distance is scaled down by a factor of 3 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
-- I have also provided support for [[https://github.com/nex3/perspective-el][perspectives]]. This class of gumshoe will then maintain a separate log for each perspective. Enable this mode with the *global-gumshoe-persp-mode* commands. It uses separate commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
-- Finally, I have also provided support for buffer-local gumshoes. This class of gumshoe will then maintain a separate log for each buffer. Enable this mode with the *global-gumshoe-buf-mode* commands described above. It uses separate commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
+** Backtracking
+Backtracking works a bit like isearch. Point will jump sequentially between points in the backlog.
+- Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
+- There is built-in support for buffer-local gumshoes. Enable this mode with the *global-gumshoe-buf-mode* commands described above. It uses separate commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
+- I have also provided support for [[https://github.com/nex3/perspective-el][perspectives]]. It uses separate commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
+- By default, Gumshoe also marks "footprints", an overlay visually indicating entry points in the buffer. Toggle *gumshoe-show-footprints-p* to disable them.
+- Make your own backtracking commands by providing a filter predicate to *gumshoe--backtrack*.
+** Peruse
+You can also visually browse the backlog with the peruse commands.
+- Provided *gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer* and *gumshoe--peruse-in-persp*.
+- Customize *gumshoe-slot-schema* to specify which, and in what order you would like entry fields displayed.
+- Make your own peruse commands by providing a filter predicate to gumshoe--peruse.
 
 * Similar Packages
 If Gumshoe doesn’t suit you, here are some more Point history tracking packages that may.
+- https://github.com/alphapapa/dogears.el Dogears is particularly similar to gumshoe. They both use spatial and temporal tracking. There may be some sort of convergence of these packages at some point. It’s an open issue.
 - https://github.com/blue0513/point-history
 - https://github.com/tcw165/history
 - https://github.com/dgutov/point-stack/
@@ -70,7 +58,9 @@ So why do we need gumshoe then?
 Gumshoe has:
 - temporal tracking
 - spatial tracking
+- customizable log filters allow you to see just the information you want.
+- customizable context metadata allows you to tell gumshoe exactly what you want logged.
+- Built-in autocompletion using only completing-read.
 - extensible scoping: if you can make arbitrary variables local to your scope, you can make a gumshoe mode for that scope. Scoped logs work independently, and don’t interfere with the global-mark-ring.
-- integrates well with autocompletion
 - works ootb without much configuration or dependency on external packages
 Packages above may have one or two of these features, but changes on the order of a complete rewrite would be required to make them work like gumshoe. But comments are totally welcome if you’d like to open an issue.
