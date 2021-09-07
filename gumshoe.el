@@ -68,7 +68,7 @@
 
 (defface gumshoe--footprint-face
   '((t :inherit highlight
-       :weight "bold"))
+       :weight bold))
   "Face for footprint overlays.")
 
 (defcustom gumshoe-display-buffer-action '((display-buffer-reuse-window display-buffer-same-window))
