@@ -7,7 +7,7 @@
 * Introduction
 Gumshoe is a collection of global minor modes that quietly keep tabs on your Point movements so you can retrace your steps if you ever need a reminder of where you’ve been. Each mode keeps a log local to some scope.
 
-[[./demo.gif]]
+[[./peruse-demo.gif]]
 (This demonstrates the non-built-in consult-gumshoe-global command I describe below, because it’s the most visual. I usually just use gumshoe--backtrack-back/forward and its variants.)
 
 Gumshoe does not keep track of every move you make, rather, only at increments of some minimum Euclidean distance from the last tracked position, like a leash. It will also automatically log a position if you’ve idled there for a configurable amount of time. This package is very similar to Vim’s jump list, just generalized for Emacs.
