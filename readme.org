@@ -8,7 +8,7 @@
 Gumshoe is a collection of global minor modes that quietly keep tabs on your Point movements so you can retrace your steps if you ever need a reminder of where you’ve been. Each mode keeps a log local to some scope.
 
 [[./peruse-demo.gif]]
-(This demonstrates the non-built-in consult-gumshoe-global command I describe below, because it’s the most visual. I usually just use gumshoe--backtrack-back/forward and its variants.)
+(This demonstrates the non-built-in gumshoe-peruse-globally command described below, because it’s the most visual. I usually just use gumshoe--backtrack-back/forward and its variants.)
 
 Gumshoe does not keep track of every move you make, rather, only at increments of some minimum Euclidean distance from the last tracked position, like a leash. It will also automatically log a position if you’ve idled there for a configurable amount of time. This package is very similar to Vim’s jump list, just generalized for Emacs.
 
@@ -32,18 +32,18 @@ And no need to use all of that of course (though I do), just pick what you like.
 - Configure Gumshoe’s euclidean follow distance by customizing the *gumshoe--follow-distance* variable.
 - Configure Gumshoe’s idle time by customizing the *gumshoe-idle-time* variable.
 - Configure the number of locations logged with the *gumshoe-log-len* variable.
-- Horizontal distance is scaled down by a factor of 3 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
+- Horizontal distance is scaled down by a factor of 4 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
 ** Backtracking
 Backtracking works a bit like isearch. Point will jump sequentially between points in the backlog.
 [[./backtrack-demo.gif]]
 - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
-- There is built-in support for buffer-local gumshoes. Enable this mode with the *global-gumshoe-buf-mode* commands described above. It uses separate commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
-- I have also provided support for [[https://github.com/nex3/perspective-el][perspectives]]. It uses separate commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
+- There is built-in support for buffer-local backtracking using commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
+- I have also provided support for [[https://github.com/nex3/perspective-el][perspective]]-local backtracking using commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
 - By default, Gumshoe also marks "footprints", an overlay visually indicating entry points in the buffer. Toggle *gumshoe-show-footprints-p* to disable them.
 - Make your own backtracking commands by providing a filter predicate to *gumshoe--backtrack*.
-** Peruse
-You can also visually browse the backlog with the peruse commands.
-- Provided *gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer* and *gumshoe--peruse-in-persp*.
+** Perusing
+You can also visually browse the backlog in the minibuffer with the peruse commands:
+*gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer* and *gumshoe--peruse-in-persp*.
 - Customize *gumshoe-slot-schema* to specify which, and in what order you would like entry fields displayed.
 - Make your own peruse commands by providing a filter predicate to gumshoe--peruse.
 
@@ -56,7 +56,7 @@ You can also visually browse the backlog with the peruse commands.
 
 * Similar Packages
 If Gumshoe doesn’t suit you, here are some more Point history tracking packages that may.
-- https://github.com/alphapapa/dogears.el Dogears is particularly similar to gumshoe. They both use spatial and temporal tracking. There may be some sort of convergence of these packages at some point. It’s an open issue.
+- https://github.com/alphapapa/dogears.el Dogears is particularly similar to gumshoe. They both have automatic spatial and temporal tracking, and allows visual navigation of the log. There may actually be some sort of convergence of these packages at some point. It’s an open issue.
 - https://github.com/blue0513/point-history
 - https://github.com/tcw165/history
 - https://github.com/dgutov/point-stack/
@@ -64,8 +64,7 @@ If Gumshoe doesn’t suit you, here are some more Point history tracking package
 - https://github.com/gilbertw1/better-jumper
 So why do we need gumshoe then?
 Gumshoe has:
-- temporal tracking
-- spatial tracking
+- automatic temporal tracking and spatial tracking
 - customizable log filters allow you to see just the information you want.
 - customizable context metadata allows you to tell gumshoe exactly what you want logged.
 - Built-in autocompletion using only completing-read.
