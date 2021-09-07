@@ -35,6 +35,7 @@ And no need to use all of that of course (though I do), just pick what you like.
 - Horizontal distance is scaled down by a factor of 3 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
 ** Backtracking
 Backtracking works a bit like isearch. Point will jump sequentially between points in the backlog.
+[[./backtrack-demo.gif]]
 - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
 - There is built-in support for buffer-local gumshoes. Enable this mode with the *global-gumshoe-buf-mode* commands described above. It uses separate commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
 - I have also provided support for [[https://github.com/nex3/perspective-el][perspectives]]. It uses separate commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
