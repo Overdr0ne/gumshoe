@@ -93,8 +93,8 @@ See `display-buffer' for more information"
    (startp :initform nil
            :documentation "Flag indicating when backtracking has begun.")
    (msg :initform ""
-        :documentation "Stores info for the user during backtracking.")
-   (:documentation "Gumshoe’s backlog for tracking POINT positions.")))
+        :documentation "Stores info for the user during backtracking."))
+  "Gumshoe’s backlog for tracking POINT positions.")
 
 (defclass gumshoe--entry ()
   ((filename :initform (buffer-file-name)
@@ -109,13 +109,13 @@ See `display-buffer' for more information"
    (time :initform (current-time-string)
          :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
    (mode :initform (symbol-name major-mode)
-         :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (:documentation "Entry class for Gumshoe’s backlog.")))
+         :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
+  "Entry class for Gumshoe’s backlog.")
 
 (defclass gumshoe--persp-entry (gumshoe--entry)
   ((perspective :initform (persp-current-name)
                 :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
-  (:documentation "Entry class for Gumshoe’s backlog, with perspectives."))
+  "Entry class for Gumshoe’s backlog, with perspectives.")
 
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   "Jump Point to buffer and position in SELF."
