@@ -118,20 +118,26 @@ See `display-buffer' for more information"
   (:documentation "Entry class for Gumshoe’s backlog, with perspectives."))
 
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
+  "Jump Point to buffer and position in SELF."
   (with-slots (buffer position) self
     (pop-to-buffer buffer)
     (goto-char position)))
 
 (defun gumshoe--format-record (rec format-string slot-spec)
+  "Format REC according to FORMAT-STRING and SLOT-SPEC."
   (let* ((slot-vals (mapcar #'(lambda (slot) (slot-value rec slot)) slot-spec)))
     (apply #'format format-string slot-vals)))
 
 (defun gumshoe--format-records (rec-list format-string slot-spec)
+  "Format records in REC-LIST according to FORMAT-STRING and SLOT-SPEC."
   (mapcar #'(lambda (rec) (gumshoe--format-record rec format-string slot-spec)) rec-list))
 
-(defun gumshoe--peruse (entries slot-spec &optional entry-filter)
-  "Peruse the BACKLOG."
-  (let* ((format-schema (string-join (mapcar #'symbol-name slot-spec) "|"))
+(cl-defmethod gumshoe--peruse ((self gumshoe--backlog) slot-spec &optional entry-filter)
+  "Peruse SLOT-SPEC fields of SELF.
+
+Pre-filter results with ENTRY-FILTER."
+  (let* ((entries (ring-elements (oref self log)))
+         (format-schema (string-join (mapcar #'symbol-name slot-spec) "|"))
          (prompt (concat "(" format-schema "): "))
          (format-components (mapcar #'(lambda (_) "%s") slot-spec))
          (format-string (string-join format-components "|"))
@@ -178,7 +184,8 @@ See `display-buffer' for more information"
   "Check if LAST-ENTRY is outside gumshoe’s boundary."
   (> (gumshoe--distance-to last-entry)
      gumshoe-follow-distance))
-(cl-defmethod gumshoe--changed-file-p ((last-entry gumshoe--entry))
+(cl-defmethod gumshoe--buffer-changed-p ((last-entry gumshoe--entry))
+  "Return t if current buffer is different than that in LAST-ENTRY."
   (not (equal (current-buffer)
               (oref last-entry buffer))))
 (cl-defmethod gumshoe--track ((self gumshoe--backlog))
@@ -194,12 +201,13 @@ See `display-buffer' for more information"
         (if (ring-empty-p log)
             (gumshoe--log-current-position log entry-type)
           (let ((last-entry (ring-ref log 0)))
-            (when (or (gumshoe--changed-file-p last-entry)
+            (when (or (gumshoe--buffer-changed-p last-entry)
                       (gumshoe--end-of-leash-p last-entry))
               (gumshoe--log-current-position log entry-type))))))))
 
 ;;; footprints
 (cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id)
+  "Add footprint overlay to SELF, labeled with ID."
   (with-slots (position buffer) self
     (message (buffer-name buffer))
     (let* ((label (int-to-string id))
@@ -211,6 +219,7 @@ See `display-buffer' for more information"
         (overlay-put overlay 'display label))
       overlay)))
 (cl-defmethod gumshoe--show-footprints ((self gumshoe--backlog))
+  "Display footprints for all filtered entries in SELF."
   (with-slots (filtered footprints) self
     (setf footprints nil)
     (let ((i (length filtered)))
@@ -218,7 +227,8 @@ See `display-buffer' for more information"
         (push (gumshoe--mark-footprint entry i)
               footprints)
         (cl-decf i)))))
-(defmethod gumshoe--hide-footprints ((self gumshoe--backlog))
+(cl-defmethod gumshoe--hide-footprints ((self gumshoe--backlog))
+  "Hide footprints in SELF."
   (with-slots (footprints) self
     (while footprints
       (let ((footprint (pop footprints)))
@@ -226,6 +236,9 @@ See `display-buffer' for more information"
 
 ;;; backtracking
 (cl-defmethod gumshoe--increment-index ((self gumshoe--backlog) incrementer)
+  "Increment index in SELF with INCREMENTER function.
+
+In particular, notify users if index would go outside log boundaries."
   (with-slots (index msg filtered) self
     (setf index (funcall incrementer index 1))
     (cond
@@ -249,6 +262,7 @@ See `display-buffer' for more information"
             (cl-incf i)
           (ring-remove ring i))))))
 (cl-defmethod gumshoe--init-backtracking ((self gumshoe--backlog) filter)
+  "FILTER SELF, and reset slots to start backtracking."
   (with-slots (log filtered msg startp index) self
     (gumshoe--ring-clean log)
     (setf filtered (if filter
@@ -259,6 +273,10 @@ See `display-buffer' for more information"
     (setf startp nil)
     (setf index 0)))
 (cl-defmethod gumshoe--backtrack ((self gumshoe--backlog) incrementer filter)
+  "Backtrack using INCREMENTER in SELF.
+
+Only including results satisfying FILTER.
+INCREMENTER increments the index in SELF."
   (if (oref self startp)
       (gumshoe--init-backtracking self filter)
     (gumshoe--increment-index self incrementer))
@@ -271,10 +289,10 @@ See `display-buffer' for more information"
 
 ;;; filter predicates
 (cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
-  "Check if entry in the current perspective."
+  "Check if ENTRY in the current perspective."
   (equal (oref entry buffer) (current-buffer)))
 (cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--entry))
-  "Check if entry in the current perspective."
+  "Check if ENTRY in the current perspective."
   (equal (oref entry perspective) (persp-current-name)))
 
 ;;; interface setup
@@ -282,15 +300,18 @@ See `display-buffer' for more information"
   "A class of symbol `gumshoe--backlog' with global scope.")
 (defvar gumshoe--global-timer nil
   "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'.")
-(defun gumshoe--timer-callback (backlog)
-  "Called by timer to log current position in BACKLOG-VAR."
-  (with-slots (backtrackingp log entry-type) backlog
+(cl-defmethod gumshoe--timer-callback ((self gumshoe--backlog))
+  "Called by timer to log current position in SELF."
+  (with-slots (backtrackingp log entry-type) self
     (unless backtrackingp
       (gumshoe--log-current-position log entry-type))))
 (defmacro gumshoe--make-commands (backtrack-back-name backtrack-forward-name peruse-name filter-name)
-  "Make the command interface for BACKLOG-VAR by name.
+  "Make the command interface for `gumshoe--global-backlog’ by name.
 
-BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking commands."
+BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking
+commands.
+A command will be generated for perusal called PERUSE-NAME.
+Results will be filtered using FILTER-NAME function."
   `(progn
 
      (defun ,peruse-name ()
