@@ -131,10 +131,10 @@ See `display-buffer' for more information"
 
 (defun gumshoe--peruse (entries slot-spec &optional entry-filter)
   "Peruse the BACKLOG."
-  (let* ((format-schema (string-join (mapcar #'symbol-name slot-spec) ":"))
+  (let* ((format-schema (string-join (mapcar #'symbol-name slot-spec) "|"))
          (prompt (concat "(" format-schema "): "))
          (format-components (mapcar #'(lambda (_) "%s") slot-spec))
-         (format-string (string-join format-components ":"))
+         (format-string (string-join format-components "|"))
          (filtered-entries (if entry-filter
                                (seq-filter entry-filter entries)
                              entries))
