@@ -62,7 +62,7 @@
   "Type of gumshoe backlog entries."
   :type 'symbol)
 
-(defcustom gumshoe-slot-schema '(buffer position line)
+(defcustom gumshoe-slot-schema '(time buffer position line)
   "Entry slots to view when browsing the log."
   :type 'list)
 
