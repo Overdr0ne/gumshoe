@@ -61,6 +61,7 @@ I then just added that to my use-package definition.
 
 * Similar Packages
 If Gumshoe doesn’t suit you, here are some more Point history tracking packages that may.
+- https://github.com/alphapapa/dogears.el Dogears is particularly similar to gumshoe. They both have automatic spatial and temporal tracking, and allows visual navigation of the log. There may actually be some sort of convergence of these packages at some point. It’s an open issue.
 - https://github.com/blue0513/point-history
 - https://github.com/tcw165/history
 - https://github.com/dgutov/point-stack/
