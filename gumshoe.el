@@ -35,6 +35,7 @@
 
 (require 'eieio)
 (require 'cl-lib)
+(require 'subr-x)
 (require 'ring)
 
 (defgroup gumshoe nil
@@ -192,8 +193,8 @@ Pre-filter results with ENTRY-FILTER."
   "Log the current position to SELF if necessary."
   (unless self (error "Gumshoe argument self is nil"))
   (with-slots (backtrackingp startp log index entry-type) self
-    (unless (some (apply-partially #'equal this-command)
-                  '(gumshoe-backtrack-back gumshoe-backtrack-forward))
+    (unless (cl-some (apply-partially #'equal this-command)
+                     '(gumshoe-backtrack-back gumshoe-backtrack-forward))
       (setf startp t)
       (setf backtrackingp nil)
       (gumshoe--hide-footprints self)
@@ -211,22 +212,20 @@ Pre-filter results with ENTRY-FILTER."
   (with-slots (position buffer) self
     (message (buffer-name buffer))
     (let* ((label (int-to-string id))
-           (begin position)
-           (end (+ begin (length label)))
-           (overlay (make-overlay begin end buffer)))
+           (overlay (make-overlay position position buffer)))
       (when (and buffer (> (buffer-size buffer) 1))
-        (overlay-put overlay 'face 'gumshoe--footprint-face)
-        (overlay-put overlay 'display label))
+        (add-text-properties 0 (length label) '(face gumshoe--footprint-face) label)
+        (overlay-put overlay 'after-string label))
       overlay)))
 (cl-defmethod gumshoe--show-footprints ((self gumshoe--backlog))
   "Display footprints for all filtered entries in SELF."
   (with-slots (filtered footprints) self
     (setf footprints nil)
-    (let ((i (length filtered)))
-      (dolist (entry filtered)
+    (let ((i 1))
+      (dolist (entry (reverse filtered))
         (push (gumshoe--mark-footprint entry i)
               footprints)
-        (cl-decf i)))))
+        (cl-incf i)))))
 (cl-defmethod gumshoe--hide-footprints ((self gumshoe--backlog))
   "Hide footprints in SELF."
   (with-slots (footprints) self
