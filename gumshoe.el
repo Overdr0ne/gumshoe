@@ -206,14 +206,17 @@ Pre-filter results with ENTRY-FILTER."
   "Return t if current buffer is different than that in LAST-ENTRY."
   (not (equal (current-buffer)
               (oref last-entry buffer))))
-(cl-defmethod gumshoe--track ((self gumshoe--backlog))
-  "Log the current position to SELF if necessary."
-  (unless self (error "Gumshoe argument self is nil"))
-  (with-slots (backtrackingp startp log index entry-type) self
-    (unless (cl-some (apply-partially #'equal this-command)
-                     '(gumshoe-backtrack-back gumshoe-backtrack-forward))
-      (setf startp t)
-      (setf backtrackingp nil)
+(cl-defmethod gumshoe--pre-track ((self gumshoe--backlog))
+  "Initialize backtracking for SELF if necessary."
+  (with-slots (backtrackingp startp) self
+    (unless backtrackingp
+      (setf startp t))
+    (setf backtrackingp nil)))
+
+(cl-defmethod gumshoe--post-track ((self gumshoe--backlog))
+  "Log the current position to SELF if not backtracking."
+  (with-slots (backtrackingp log entry-type) self
+    (unless backtrackingp
       (gumshoe--hide-footprints self)
       (unless (minibufferp)
         (if (ring-empty-p log)
@@ -297,11 +300,12 @@ INCREMENTER increments the index in SELF."
     (let ((prev-index index))
       (if startp (gumshoe--init-backtracking self filter)
         (gumshoe--increment-index self incrementer))
+      (setf startp nil)
       (when gumshoe-show-footprints-p (gumshoe--hl-current-footprint footprints prev-index index))
       (if (not filtered)
           (setf msg "I haven’t recorded any entries here yet...")
-        (setf backtrackingp t)
         (gumshoe--jump (nth index filtered)))
+      (setf backtrackingp t)
       (message msg))))
 
 ;;; filter predicates
@@ -354,14 +358,18 @@ Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
 
   (oset gumshoe--global-backlog entry-type gumshoe-entry-type)
   (add-hook 'pre-command-hook
-            (apply-partially #'gumshoe--track gumshoe--global-backlog))
+            (apply-partially #'gumshoe--pre-track gumshoe--global-backlog))
+  (add-hook 'post-command-hook
+            (apply-partially #'gumshoe--post-track gumshoe--global-backlog))
   (setf gumshoe--global-timer
         (run-with-idle-timer gumshoe-idle-time t
                              (apply-partially #'gumshoe--timer-callback gumshoe--global-backlog))))
 (defun gumshoe--revert ()
   "Revert `gumshoe--global-backlog’ and `gumshoe--global-timer’."
   (remove-hook 'pre-command-hook
-               (apply-partially #'gumshoe--track gumshoe--global-backlog))
+               (apply-partially #'gumshoe--pre-track gumshoe--global-backlog))
+  (remove-hook 'post-command-hook
+               (apply-partially #'gumshoe--post-track gumshoe--global-backlog))
   (cancel-timer gumshoe--global-timer))
 
 ;;;###autoload
