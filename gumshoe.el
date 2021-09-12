@@ -68,7 +68,14 @@
   :type 'list)
 
 (defface gumshoe--footprint-face
-  '((t :inherit highlight
+  '((t
+     :inherit highlight
+     :box (:line-width -3 :style released-button)
+     :weight bold))
+  "Face for footprint overlays.")
+(defface gumshoe--current-footprint-face
+  '((t :inherit match
+       :box (:line-width -3 :style released-button)
        :weight bold))
   "Face for footprint overlays.")
 
@@ -168,6 +175,16 @@ Pre-filter results with ENTRY-FILTER."
          (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
     (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))))
 
+(defun gumshoe--ring-clean (ring)
+  "Cleanup entries from RING without a buffer."
+  (let ((i 0)
+        (n (ring-length ring)))
+    (while (< i n)
+      (let* ((entry (ring-ref ring i))
+             (buffer (oref entry buffer)))
+        (if (buffer-live-p buffer)
+            (cl-incf i)
+          (ring-remove ring i))))))
 (defun gumshoe--log-current-position (ring entry-type)
   "Log new backlog entry of ENTRY-TYPE to RING."
   (let ((new-entry (funcall entry-type)))
@@ -207,23 +224,33 @@ Pre-filter results with ENTRY-FILTER."
               (gumshoe--log-current-position log entry-type))))))))
 
 ;;; footprints
-(cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id)
-  "Add footprint overlay to SELF, labeled with ID."
+(cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id face)
+  "Add footprint overlay to SELF, labeled with ID, using FACE."
   (with-slots (position buffer) self
     (message (buffer-name buffer))
     (let* ((label (int-to-string id))
            (overlay (make-overlay position position buffer)))
       (when (and buffer (> (buffer-size buffer) 1))
-        (add-text-properties 0 (length label) '(face gumshoe--footprint-face) label)
+        (put-text-property 0 (length label) 'face face label)
         (overlay-put overlay 'after-string label))
       overlay)))
+(defun gumshoe--replace-footprint (footprints index face)
+  "Add footprint overlay to SELF, at footprint INDEX, using FACE."
+  (let* ((label (int-to-string (- (length footprints) index)))
+         (footprint (nth index footprints)))
+    (put-text-property 0 (length label) 'face face label)
+    (overlay-put footprint 'after-string label)))
+(defun gumshoe--hl-current-footprint (footprints prev-index cur-index)
+  "Replace PREV-INDEX with CUR-INDEX as current footprint in FOOTPRINTS."
+  (gumshoe--replace-footprint footprints prev-index 'gumshoe--footprint-face)
+  (gumshoe--replace-footprint footprints cur-index 'gumshoe--current-footprint-face))
 (cl-defmethod gumshoe--show-footprints ((self gumshoe--backlog))
   "Display footprints for all filtered entries in SELF."
   (with-slots (filtered footprints) self
     (setf footprints nil)
     (let ((i 1))
       (dolist (entry (reverse filtered))
-        (push (gumshoe--mark-footprint entry i)
+        (push (gumshoe--mark-footprint entry i 'gumshoe--footprint-face)
               footprints)
         (cl-incf i)))))
 (cl-defmethod gumshoe--hide-footprints ((self gumshoe--backlog))
@@ -238,7 +265,7 @@ Pre-filter results with ENTRY-FILTER."
   "Increment index in SELF with INCREMENTER function.
 
 In particular, notify users if index would go outside log boundaries."
-  (with-slots (index msg filtered) self
+  (with-slots (index msg filtered footprints) self
     (setf index (funcall incrementer index 1))
     (cond
      ((>= index (length filtered))
@@ -250,16 +277,6 @@ In particular, notify users if index would go outside log boundaries."
      (t
       (setf msg (format "Gumshoe: entry #%i"
                         (- (length filtered) index)))))))
-(defun gumshoe--ring-clean (ring)
-  "Cleanup entries from RING without a buffer."
-  (let ((i 0)
-        (n (ring-length ring)))
-    (while (< i n)
-      (let* ((entry (ring-ref ring i))
-             (buffer (oref entry buffer)))
-        (if (buffer-live-p buffer)
-            (cl-incf i)
-          (ring-remove ring i))))))
 (cl-defmethod gumshoe--init-backtracking ((self gumshoe--backlog) filter)
   "FILTER SELF, and reset slots to start backtracking."
   (with-slots (log filtered msg startp index) self
@@ -276,15 +293,16 @@ In particular, notify users if index would go outside log boundaries."
 
 Only including results satisfying FILTER.
 INCREMENTER increments the index in SELF."
-  (if (oref self startp)
-      (gumshoe--init-backtracking self filter)
-    (gumshoe--increment-index self incrementer))
-  (with-slots (backtrackingp index filtered msg) self
-    (if (not filtered)
-        (setf msg "I haven’t recorded any entries here yet...")
-      (setf backtrackingp t)
-      (gumshoe--jump (nth index filtered)))
-    (message msg)))
+  (with-slots (startp backtrackingp index filtered msg footprints) self
+    (let ((prev-index index))
+      (if startp (gumshoe--init-backtracking self filter)
+        (gumshoe--increment-index self incrementer))
+      (when gumshoe-show-footprints-p (gumshoe--hl-current-footprint footprints prev-index index))
+      (if (not filtered)
+          (setf msg "I haven’t recorded any entries here yet...")
+        (setf backtrackingp t)
+        (gumshoe--jump (nth index filtered)))
+      (message msg))))
 
 ;;; filter predicates
 (cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
