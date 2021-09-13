@@ -85,25 +85,6 @@
 See `display-buffer' for more information"
   :type 'list)
 
-(defclass gumshoe--backlog ()
-  ((log :initform (make-ring gumshoe-log-len)
-        :documentation "Ring-buffer to remember the previous editing position.")
-   (entry-type :initform 'gumshoe--entry
-               :documentation "Type of entries in the log ring.")
-   (filtered :initform nil
-             :documentation "The filtered log list used when backtracking.")
-   (footprints :initform nil
-               :documentation "A overlay indicating previous locations.")
-   (index :initform 0
-          :documentation "Current index backwards into the log when backtracking.")
-   (backtrackingp :initform nil
-                  :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (startp :initform nil
-           :documentation "Flag indicating when backtracking has begun.")
-   (msg :initform ""
-        :documentation "Stores info for the user during backtracking."))
-  "Gumshoe’s backlog for tracking POINT positions.")
-
 (defclass gumshoe--entry ()
   ((filename :initform (buffer-file-name)
              :documentation "Ring-buffer to remember the previous editing position.")
@@ -125,6 +106,37 @@ See `display-buffer' for more information"
                 :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
   "Entry class for Gumshoe’s backlog, with perspectives.")
 
+;; (defclass gumshoe--backlog ()
+;;   (
+;;    (log :initform (make-ring gumshoe-log-len)
+;;         :documentation "Ring-buffer to remember the previous editing position.")
+;;    (entry-type :initform 'gumshoe--entry
+;;                :documentation "Type of entries in the log ring.")
+;;    )
+;;   "Gumshoe’s backlog for tracking POINT positions.")
+
+(defclass gumshoe--backlog ()
+  (
+   ;; (backlog :initform gumshoe--global-backlog
+   ;;          :documentation "Ring-buffer to remember the previous editing position.")
+   (log :initform (make-ring gumshoe-log-len)
+        :documentation "Ring-buffer to remember the previous editing position.")
+   (entry-type :initform 'gumshoe--entry
+               :documentation "Type of entries in the log ring.")
+   (filtered :initform nil
+             :documentation "The filtered log list used when backtracking.")
+   (footprints :initform nil
+               :documentation "An overlay indicating previous locations.")
+   (index :initform 0
+          :documentation "Current index backwards into the log when backtracking.")
+   (backtrackingp :initform nil
+                  :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
+   (startp :initform nil
+           :documentation "Flag indicating when backtracking has begun.")
+   (msg :initform ""
+        :documentation "Stores info for the user during backtracking."))
+  "Gumshoe’s backtracker keeps track of backtracking state.")
+
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   "Jump Point to buffer and position in SELF."
   (with-slots (buffer position) self
@@ -132,12 +144,12 @@ See `display-buffer' for more information"
     (goto-char position)))
 
 (defun gumshoe--format-record (rec format-string slot-spec)
-  "Format REC according to FORMAT-STRING and SLOT-SPEC."
+  "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
   (let* ((slot-vals (mapcar #'(lambda (slot) (slot-value rec slot)) slot-spec)))
     (apply #'format format-string slot-vals)))
 
 (defun gumshoe--format-records (rec-list format-string slot-spec)
-  "Format records in REC-LIST according to FORMAT-STRING and SLOT-SPEC."
+  "Format records in REC-LIST according to FORMAT-STRING using SLOT-SPEC fields."
   (mapcar #'(lambda (rec) (gumshoe--format-record rec format-string slot-spec)) rec-list))
 
 (cl-defmethod gumshoe--peruse ((self gumshoe--backlog) slot-spec &optional entry-filter)
@@ -215,9 +227,9 @@ Pre-filter results with ENTRY-FILTER."
 
 (cl-defmethod gumshoe--post-track ((self gumshoe--backlog))
   "Log the current position to SELF if not backtracking."
-  (with-slots (backtrackingp log entry-type) self
+  (with-slots (backtrackingp log entry-type footprints) self
     (unless backtrackingp
-      (gumshoe--hide-footprints self)
+      (gumshoe--hide-footprints footprints)
       (unless (minibufferp)
         (if (ring-empty-p log)
             (gumshoe--log-current-position log entry-type)
@@ -247,21 +259,19 @@ Pre-filter results with ENTRY-FILTER."
   "Replace PREV-INDEX with CUR-INDEX as current footprint in FOOTPRINTS."
   (gumshoe--replace-footprint footprints prev-index 'gumshoe--footprint-face)
   (gumshoe--replace-footprint footprints cur-index 'gumshoe--current-footprint-face))
-(cl-defmethod gumshoe--show-footprints ((self gumshoe--backlog))
+(defun gumshoe--mark-footprints (entries)
   "Display footprints for all filtered entries in SELF."
-  (with-slots (filtered footprints) self
-    (setf footprints nil)
-    (let ((i 1))
-      (dolist (entry (reverse filtered))
-        (push (gumshoe--mark-footprint entry i 'gumshoe--footprint-face)
-              footprints)
-        (cl-incf i)))))
-(cl-defmethod gumshoe--hide-footprints ((self gumshoe--backlog))
-  "Hide footprints in SELF."
-  (with-slots (footprints) self
-    (while footprints
-      (let ((footprint (pop footprints)))
-        (delete-overlay footprint)))))
+  (let ((i 1) footprints)
+    (dolist (entry (reverse entries))
+      (push (gumshoe--mark-footprint entry i 'gumshoe--footprint-face)
+            footprints)
+      (cl-incf i))
+    footprints))
+(defun gumshoe--hide-footprints (footprints)
+  "Hide footprints in FOOTPRINTS."
+  (while footprints
+    (let ((footprint (pop footprints)))
+      (delete-overlay footprint))))
 
 ;;; backtracking
 (cl-defmethod gumshoe--increment-index ((self gumshoe--backlog) incrementer)
@@ -282,13 +292,14 @@ In particular, notify users if index would go outside log boundaries."
                         (- (length filtered) index)))))))
 (cl-defmethod gumshoe--init-backtracking ((self gumshoe--backlog) filter)
   "FILTER SELF, and reset slots to start backtracking."
-  (with-slots (log filtered msg startp index) self
+  (with-slots (log filtered footprints msg startp index) self
     (gumshoe--ring-clean log)
     (setf filtered (if filter
                        (seq-filter filter (ring-elements log))
                      (ring-elements log)))
     (setf msg (format "Gumshoe: entry #%i" (length filtered)))
-    (when gumshoe-show-footprints-p (gumshoe--show-footprints self))
+    (when gumshoe-show-footprints-p
+      (setf footprints (gumshoe--mark-footprints filtered)))
     (setf startp nil)
     (setf index 0)))
 (cl-defmethod gumshoe--backtrack ((self gumshoe--backlog) incrementer filter)
