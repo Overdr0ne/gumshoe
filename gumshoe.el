@@ -377,8 +377,14 @@ When enabled, Gumshoe logs point movements when they exceed the
       (gumshoe--mode-init)
     (gumshoe--revert)))
 
-(define-obsolete-function-alias 'global-gumshoe-persp-mode 'global-gumshoe-mode "2.0")
-(define-obsolete-function-alias 'global-gumshoe-buf-mode 'global-gumshoe-mode "2.0")
+(defun global-gumshoe-persp-mode ()
+  "Obsolete mode for perspective local tracking."
+  (interactive) (global-gumshoe-mode +1))
+(make-obsolete 'global-gumshoe-persp-mode 'global-gumshoe-mode "2.0")
+(defun global-gumshoe-buf-mode ()
+  "Obsolete mode for buffer local tracking."
+  (interactive) (global-gumshoe-mode +1))
+(make-obsolete 'global-gumshoe-buf-mode 'global-gumshoe-mode "2.0")
 
 ;; This is intended to serve as a template for anyone else who would wish to
 ;; extend gumshoe with their own context metadata. In this case, I add a field
