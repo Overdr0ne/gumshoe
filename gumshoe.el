@@ -393,6 +393,7 @@ When enabled, Gumshoe logs point movements when they exceed the
 ;; for all that. You could certainly do more, or less, but this mirrors what I
 ;; did for the buffer-local interface. Go wild.
 (with-eval-after-load 'perspective
+  (defcustom auto-config-perspectives t)
   (defclass gumshoe--persp-entry (gumshoe--entry)
     ((perspective :initform (persp-current-name)
                   :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
@@ -408,7 +409,8 @@ When enabled, Gumshoe logs point movements when they exceed the
       (pop-to-buffer buffer)
       (goto-char position)))
 
-  (when (equal gumshoe-entry-type 'gumshoe--entry)
+  ;; This is ugly, but I want perspectives to work ootb.
+  (when auto-config-perspectives
     ;; Tell gumshoe what type of backlog to use
     (setf gumshoe-entry-type 'gumshoe--persp-entry)
     (gumshoe--make-xface gumshoe--in-current-persp-p gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp)))
