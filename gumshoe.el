@@ -43,7 +43,7 @@
   :group 'convenience
   :prefix "gumshoe-")
 
-(defcustom gumshoe-log-len 100
+(defcustom gumshoe-log-len 300
   "Length of gumshoe--backlog’s ring-buffer."
   :type 'integer)
 (defcustom gumshoe-follow-distance 15
