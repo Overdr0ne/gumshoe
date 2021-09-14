@@ -60,11 +60,11 @@
   :type 'boolean)
 
 (defcustom gumshoe-entry-type 'gumshoe--entry
-  "Type of gumshoe backlog entries."
+  "Type of entry Gumshoe should use in the backlog."
   :type 'symbol)
 
 (defcustom gumshoe-slot-schema '(time buffer position line)
-  "Entry slots to view when browsing the log."
+  "Entry slot order for perusing the backlog."
   :type 'list)
 
 (defface gumshoe--footprint-face
@@ -101,27 +101,16 @@ See `display-buffer' for more information"
          :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
   "Entry class for Gumshoe’s backlog.")
 
-(defclass gumshoe--persp-entry (gumshoe--entry)
-  ((perspective :initform (persp-current-name)
-                :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
-  "Entry class for Gumshoe’s backlog, with perspectives.")
-
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   "Jump Point to buffer and position in SELF."
   (with-slots (buffer position) self
-    (pop-to-buffer buffer)
-    (goto-char position)))
-(cl-defmethod gumshoe--jump ((self gumshoe--persp-entry))
-  "Jump Point to buffer and position in SELF."
-  (with-slots (buffer position perspective) self
-    (persp-switch perspective)
     (pop-to-buffer buffer)
     (goto-char position)))
 
 (defclass gumshoe--backlog ()
   ((ring :initform (make-ring gumshoe-log-len)
          :documentation "Ring-buffer to remember the previous editing position.")
-   (entry-type :initform 'gumshoe--entry
+   (entry-type :initform 'gumshoe--entry :initarg :entry-type
                :documentation "Type of entries in the log ring."))
   "Gumshoe’s backlog for tracking POINT positions.")
 
@@ -180,11 +169,6 @@ Pre-filter results with ENTRY-FILTER."
     (gumshoe--jump (cadr (assoc candidate candidates)))))
 
 ;; tracking
-(cl-defmethod gumshoe--buffer-changed-p ((last-entry gumshoe--entry))
-  "Return t if current buffer is different than that in LAST-ENTRY."
-  (not (equal (current-buffer)
-              (oref last-entry buffer))))
-
 (defun gumshoe--line-number-at (pos)
   "Return column number at POS."
   (save-excursion
@@ -201,24 +185,24 @@ Pre-filter results with ENTRY-FILTER."
                           (current-column))))
          (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
     (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))))
-(cl-defmethod gumshoe--equal ((self gumshoe--entry) (other gumshoe--entry))
-  "Is SELF equal to OTHER."
-  (and (equal (oref self perspective) (oref other perspective))
-       (equal (oref self buffer) (oref other buffer))
-       (equal (oref self position) (oref other position))))
 (cl-defmethod gumshoe--end-of-leash-p ((last-entry gumshoe--entry))
   "Check if LAST-ENTRY is outside gumshoe’s boundary."
   (> (gumshoe--distance-to last-entry)
      gumshoe-follow-distance))
 (cl-defmethod gumshoe--log-if-necessary ((self gumshoe--backlog) &optional alarmp)
-  "Check current position and log if needed."
+  "Check current position and log in SELF if needed.
+
+Log automatically if ALARMP is t."
   (with-slots (ring entry-type) self
     (unless (minibufferp)
-      (when (or (ring-empty-p ring)
-                alarmp
-                (gumshoe--buffer-changed-p (ring-ref ring 0))
-                (gumshoe--end-of-leash-p (ring-ref ring 0)))
-        (ring-insert ring (funcall entry-type))))))
+      (let ((new-entry (funcall entry-type)))
+        (when (or (ring-empty-p ring)
+                  (let ((latest-entry (ring-ref ring 0)))
+                    (and (not (equal new-entry latest-entry))
+                         (or alarmp
+                             (not (gumshoe--in-current-buffer-p latest-entry))
+                             (gumshoe--end-of-leash-p latest-entry)))))
+          (ring-insert ring new-entry))))))
 
 (cl-defmethod gumshoe--pre-track ((self gumshoe--backtracker))
   "Initialize backtracking for SELF if necessary."
@@ -319,9 +303,6 @@ INCREMENTER increments the index in SELF."
 (cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
   "Check if ENTRY in the current perspective."
   (equal (oref entry buffer) (current-buffer)))
-(cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--entry))
-  "Check if ENTRY in the current perspective."
-  (equal (oref entry perspective) (persp-current-name)))
 
 ;;; interface setup
 (defvar gumshoe-backlog nil
@@ -342,30 +323,25 @@ BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking
 commands.
 A command will be generated for perusal called PERUSE-NAME.
 Results will be filtered using FILTER-NAME function."
-  `(let ((backlog (oref gumshoe-backtracker backlog)))
+  `(progn
      (defun ,peruse-name ()
        (interactive)
-       (gumshoe--peruse backlog
+       (gumshoe--peruse gumshoe-backlog
                         gumshoe-slot-schema
                         #',filter-name))
      (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack gumshoe-backtracker #'+ #',filter-name))
      (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack gumshoe-backtracker #'- #',filter-name))))
+(gumshoe--make-xface nil gumshoe-backtrack-back gumshoe-backtrack-forward gumshoe-peruse-globally)
+(gumshoe--make-xface gumshoe--in-current-buffer-p gumshoe-buf-backtrack-back gumshoe-buf-backtrack-forward gumshoe-peruse-in-buffer)
 (defun gumshoe--mode-init ()
   "Initialize gumshoe mode for BACKLOG-VAR.
 
 Set timer for TIMER-VAR.
 
 Set BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME commands."
-  (setf gumshoe-backlog (gumshoe--backlog))
+  (setf gumshoe-backlog (gumshoe--backlog :entry-type gumshoe-entry-type))
   (setf gumshoe-backtracker (gumshoe--backtracker :backlog gumshoe-backlog))
-  (gumshoe--make-xface nil gumshoe-backtrack-back gumshoe-backtrack-forward gumshoe-peruse-globally)
-  (gumshoe--make-xface gumshoe--in-current-buffer-p gumshoe-buf-backtrack-back gumshoe-buf-backtrack-forward gumshoe-peruse-in-buffer)
-  ;; Ugly, but I really want perspectives to work automatically if possible
-  (when (and (require 'perspective nil t) (equal gumshoe-entry-type 'gumshoe--entry))
-    (setf gumshoe-entry-type 'gumshoe--persp-entry)
-    (gumshoe--make-xface gumshoe--in-current-persp-p gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp))
 
-  (oset gumshoe-backlog entry-type gumshoe-entry-type)
   (add-hook 'pre-command-hook
             (apply-partially #'gumshoe--pre-track gumshoe-backtracker))
   (add-hook 'post-command-hook
@@ -403,6 +379,33 @@ When enabled, Gumshoe logs point movements when they exceed the
 
 (define-obsolete-function-alias 'global-gumshoe-persp-mode 'global-gumshoe-mode "2.0")
 (define-obsolete-function-alias 'global-gumshoe-buf-mode 'global-gumshoe-mode "2.0")
+
+;; This is intended to serve as a template for anyone else who would wish to
+;; extend gumshoe with their own context metadata. In this case, I add a field
+;; for a perspective, create a filter for that field, specialize the default
+;; jumper to switch to the perspective on jump, and create a command interface
+;; for all that. You could certainly do more, or less, but this mirrors what I
+;; did for the buffer-local interface. Go wild.
+(with-eval-after-load 'perspective
+  (defclass gumshoe--persp-entry (gumshoe--entry)
+    ((perspective :initform (persp-current-name)
+                  :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
+    "Entry class for Gumshoe’s backlog, with perspectives.")
+  (cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--entry))
+    "Check if ENTRY in the current perspective."
+    (equal (oref entry perspective) (persp-current-name)))
+
+  (cl-defmethod gumshoe--jump ((self gumshoe--persp-entry))
+    "Jump Point to buffer and position in SELF."
+    (with-slots (buffer position perspective) self
+      (persp-switch perspective)
+      (pop-to-buffer buffer)
+      (goto-char position)))
+
+  (when (equal gumshoe-entry-type 'gumshoe--entry)
+    ;; Tell gumshoe what type of backlog to use
+    (setf gumshoe-entry-type 'gumshoe--persp-entry)
+    (gumshoe--make-xface gumshoe--in-current-persp-p gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp)))
 
 (provide 'gumshoe)
 ;;; gumshoe.el ends here
