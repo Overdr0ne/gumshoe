@@ -106,6 +106,18 @@ See `display-buffer' for more information"
                 :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
   "Entry class for Gumshoe’s backlog, with perspectives.")
 
+(cl-defmethod gumshoe--jump ((self gumshoe--entry))
+  "Jump Point to buffer and position in SELF."
+  (with-slots (buffer position) self
+    (pop-to-buffer buffer)
+    (goto-char position)))
+(cl-defmethod gumshoe--jump ((self gumshoe--persp-entry))
+  "Jump Point to buffer and position in SELF."
+  (with-slots (buffer position perspective) self
+    (persp-switch perspective)
+    (pop-to-buffer buffer)
+    (goto-char position)))
+
 (defclass gumshoe--backlog ()
   ((ring :initform (make-ring gumshoe-log-len)
          :documentation "Ring-buffer to remember the previous editing position.")
@@ -129,12 +141,6 @@ See `display-buffer' for more information"
    (msg :initform ""
         :documentation "Stores info for the user during backtracking."))
   "Gumshoe’s backtracker keeps track of backtracking state.")
-
-(cl-defmethod gumshoe--jump ((self gumshoe--entry))
-  "Jump Point to buffer and position in SELF."
-  (with-slots (buffer position) self
-    (pop-to-buffer buffer)
-    (goto-char position)))
 
 (cl-defmethod gumshoe--clean ((self gumshoe--backlog))
   "Cleanup entries from SELF without a buffer."
