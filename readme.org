@@ -28,8 +28,8 @@ I just use straight+use-package like so:
 And no need to use all of that of course (though I do), just pick what you like.
 
 * Usage
-- Once *global-gumshoe-mode* is enabled, gumshoe will automatically start recording movements into the *gumshoe--log* ringbuffer.
-- Configure Gumshoe’s euclidean follow distance by customizing the *gumshoe--follow-distance* variable.
+- Once *global-gumshoe-mode* is enabled, gumshoe will automatically start recording movements into the *gumshoe-backlog* ringbuffer.
+- Configure Gumshoe’s euclidean follow distance by customizing the *gumshoe-follow-distance* variable.
 - Configure Gumshoe’s idle time by customizing the *gumshoe-idle-time* variable.
 - Configure the number of locations logged with the *gumshoe-log-len* variable.
 - Horizontal distance is scaled down by a factor of 4 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
@@ -38,14 +38,46 @@ Backtracking works a bit like isearch. Point will jump sequentially between poin
 [[./backtrack-demo.gif]]
 - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
 - There is built-in support for buffer-local backtracking using commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
-- I have also provided support for [[https://github.com/nex3/perspective-el][perspective]]-local backtracking using commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
+- I have also provided default support for [[https://github.com/nex3/perspective-el][perspective]]-local backtracking using commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
 - By default, Gumshoe also marks "footprints", an overlay visually indicating entry points in the buffer. Toggle *gumshoe-show-footprints-p* to disable them.
-- Make your own backtracking commands by providing a filter predicate to *gumshoe--backtrack*.
 ** Perusing
 You can also visually browse the backlog in the minibuffer with the peruse commands:
 *gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer* and *gumshoe--peruse-in-persp*.
 - Customize *gumshoe-slot-schema* to specify which, and in what order you would like entry fields displayed.
 - Make your own peruse commands by providing a filter predicate to gumshoe--peruse.
+  
+* Extension
+- Make your own backtracking commands by providing a filter predicate to *gumshoe--backtrack*.
+- Similarly, you can make your own peruse commands by providing a filter predicate to *gumshoe--peruse*.
+- You can even add your own context metadata if you like by extending the gumshoe--entry class, then customize methods like gumshoe--jump to your liking.
+- I’ve also provided some syntax sugar for adding a your own command interface for perusing and backtracking with *gumshoe--make-xface*.
+- I did all of the above to add perspective support at the end of gumshoe.el. Here it is for reference:
+#+begin_src elisp
+  ;; derive from gumshoe--entry to add new fields
+  (defclass gumshoe--persp-entry (gumshoe--entry)
+    ((perspective :initform (persp-current-name)
+                  :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
+    "Entry class for Gumshoe’s backlog, with perspectives.")
+  
+  ;; Make a filter to select entries in the current class.
+  ;; This will be passed to gumshoe--make-xface below.
+  (cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--entry))
+    "Check if ENTRY in the current perspective."
+    (equal (oref entry perspective) (persp-current-name)))
+  
+  ;; Switch perspectives on jump by replacing the default implementation
+  (cl-defmethod gumshoe--jump ((self gumshoe--persp-entry))
+    "Jump Point to buffer and position in SELF."
+    (with-slots (buffer position perspective) self
+      (persp-switch perspective)
+      (pop-to-buffer buffer)
+      (goto-char position)))
+  
+  ;; Tell gumshoe what type of entries to use in the backlog
+  (setf gumshoe-entry-type 'gumshoe--persp-entry)
+  ;; Pass your new filter to make-xface to automatically generate backtrack and peruse commands
+  (gumshoe--make-xface gumshoe--in-current-persp-p gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp)
+#+end_src
 
 * Change log
 ** 2.0
