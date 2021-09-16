@@ -87,18 +87,18 @@ See `display-buffer' for more information"
 
 (defclass gumshoe--entry ()
   ((filename :initform (buffer-file-name)
-             :documentation "Ring-buffer to remember the previous editing position.")
+             :documentation "The full path of this entry.")
    (buffer :initform (current-buffer)
-           :documentation "Ring-buffer to remember the previous editing position."
+           :documentation "The buffer object of this entry."
            :printer buffer-file-name)
    (position :initform (point)
-             :documentation "Current index backwards into the log when backtracking.")
+             :documentation "Buffer position of this entry.")
    (line :initform (buffer-substring (line-beginning-position) (line-end-position))
-         :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
+         :documentation "A formatted line containing the position of this entry.")
    (time :initform (current-time-string)
-         :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (mode :initform (symbol-name major-mode)
-         :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
+         :documentation "Indicates the date and time of this entry.")
+   (major-mode :initform (symbol-name major-mode)
+               :documentation "Major mode of this entry."))
   "Entry class for Gumshoe’s backlog.")
 
 (cl-defmethod gumshoe--valid-p ((self gumshoe--entry))
