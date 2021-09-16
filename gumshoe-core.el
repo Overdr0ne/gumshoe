@@ -101,11 +101,20 @@ See `display-buffer' for more information"
          :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
   "Entry class for Gumshoe’s backlog.")
 
+(cl-defmethod gumshoe--valid-p ((self gumshoe--entry))
+  "Return t if SELF is valid."
+  (not (cl-check-type self gumshoe--entry)))
+
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   "Jump Point to buffer and position in SELF."
   (with-slots (buffer position) self
     (pop-to-buffer buffer)
     (goto-char position)))
+
+;;; filter predicates
+(cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
+  "Check if ENTRY in the current perspective."
+  (equal (oref entry buffer) (current-buffer)))
 
 (defclass gumshoe--backlog ()
   ((ring :initform (make-ring gumshoe-log-len)
@@ -304,11 +313,6 @@ INCREMENTER increments the index in SELF."
       (setf backtrackingp t)
       (message msg))))
 
-;;; filter predicates
-(cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
-  "Check if ENTRY in the current perspective."
-  (equal (oref entry buffer) (current-buffer)))
-
 ;;; interface setup
 (defvar gumshoe-backlog nil
   "Stores previous contexts recorded by Gumshoe.")
@@ -321,7 +325,7 @@ INCREMENTER increments the index in SELF."
   (with-slots (backtrackingp backlog) self
     (unless backtrackingp
       (gumshoe--log-if-necessary backlog t))))
-(defmacro gumshoe--make-xface (backtrack-back-name backtrack-forward-name peruse-name &optional filter-name)
+(defmacro gumshoe--make-xface (backtrack-back-name backtrack-forward-name peruse-name filter-name)
   "Make a command interface for the given filter.
 
 BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking
@@ -336,7 +340,7 @@ Results will be filtered using FILTER-NAME function."
                         #',filter-name))
      (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack gumshoe-backtracker #'+ #',filter-name))
      (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack gumshoe-backtracker #'- #',filter-name))))
-(gumshoe--make-xface gumshoe-backtrack-back gumshoe-backtrack-forward gumshoe-peruse-globally)
+(gumshoe--make-xface gumshoe-backtrack-back gumshoe-backtrack-forward gumshoe-peruse-globally gumshoe--valid-p)
 (gumshoe--make-xface gumshoe-buf-backtrack-back gumshoe-buf-backtrack-forward gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
 (defun gumshoe--mode-init ()
   "Initialize gumshoe mode for BACKLOG-VAR.
