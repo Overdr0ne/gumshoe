@@ -291,7 +291,6 @@ In particular, notify users if index would go outside log boundaries."
     (setf filtered (if filter
                        (seq-filter filter (ring-elements (oref backlog ring)))
                      (ring-elements (oref backlog ring))))
-    (setf msg (format "Gumshoe: entry #%i" (length filtered)))
     (when gumshoe-show-footprints-p
       (setf footprints (gumshoe--mark-footprints filtered)))
     (setf startp nil)
@@ -303,15 +302,15 @@ Only including results satisfying FILTER.
 INCREMENTER increments the index in SELF."
   (with-slots (startp backtrackingp index filtered msg footprints) self
     (let ((prev-index index))
-      (if startp (gumshoe--init-backtracking self filter)
-        (gumshoe--increment-index self incrementer))
+      (when startp (gumshoe--init-backtracking self filter))
+      (gumshoe--increment-index self incrementer)
       (setf startp nil)
       (when gumshoe-show-footprints-p (gumshoe--hl-current-footprint footprints prev-index index))
       (if (not filtered)
           (setf msg "I haven’t recorded any entries here yet...")
         (gumshoe--jump (nth index filtered)))
       (setf backtrackingp t)
-      (message msg))))
+      (when msg (message msg)))))
 
 ;;; interface setup
 (defvar gumshoe-backlog nil
