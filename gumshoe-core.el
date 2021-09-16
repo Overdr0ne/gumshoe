@@ -189,6 +189,11 @@ Pre-filter results with ENTRY-FILTER."
   "Check if LAST-ENTRY is outside gumshoe’s boundary."
   (> (gumshoe--distance-to last-entry)
      gumshoe-follow-distance))
+(cl-defmethod gumshoe--equal ((self gumshoe--entry) (other gumshoe--entry))
+  "Check if SELF and OTHER are approximately equal."
+  (and
+   (equal (oref self filename) (oref other filename))
+   (equal (oref self position) (oref other position))))
 (cl-defmethod gumshoe--log-if-necessary ((self gumshoe--backlog) &optional alarmp)
   "Check current position and log in SELF if needed.
 
@@ -198,7 +203,7 @@ Log automatically if ALARMP is t."
       (let ((new-entry (funcall entry-type)))
         (when (or (ring-empty-p ring)
                   (let ((latest-entry (ring-ref ring 0)))
-                    (and (not (equal new-entry latest-entry))
+                    (and (not (gumshoe--equal new-entry latest-entry))
                          (or alarmp
                              (not (gumshoe--in-current-buffer-p latest-entry))
                              (gumshoe--end-of-leash-p latest-entry)))))

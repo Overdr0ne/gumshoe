@@ -49,6 +49,13 @@
   "Check if ENTRY in the current perspective."
   (equal (oref entry perspective) (persp-current-name)))
 
+(cl-defmethod gumshoe--equal ((self gumshoe--persp-entry) (other gumshoe--persp-entry))
+  "Check if SELF and OTHER are approximately equal."
+  (and
+   (equal (oref self perspective) (oref other perspective))
+   (equal (oref self filename) (oref other filename))
+   (equal (oref self position) (oref other position))))
+
 (cl-defmethod gumshoe--jump ((self gumshoe--persp-entry))
   "Jump Point to buffer and position in SELF."
   (with-slots (buffer position perspective) self
