@@ -401,6 +401,6 @@ Results will be filtered using FILTER-NAME function."
      (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack (oref gumshoe-mode backtracker) #'- #',filter-name))))
 (gumshoe--make-xface gumshoe-backtrack-back gumshoe-backtrack-forward gumshoe-peruse-globally gumshoe--valid-p)
 (gumshoe--make-xface gumshoe-buf-backtrack-back gumshoe-buf-backtrack-forward gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
-(provide 'gumshoe-core)
 
+(provide 'gumshoe-core)
 ;;; gumshoe-core.el ends here
