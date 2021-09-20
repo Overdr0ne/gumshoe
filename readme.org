@@ -93,6 +93,8 @@ You can also visually browse the backlog in the minibuffer with the peruse comma
 - peruse: this is my take on `dogears-list`.  It uses completing read to browse through the backlog. The display is customizable, allowing users to specify what and in what order gumshoe--entry fields are selected.
 - Noticing how similar backtracking is to isearch, I upgraded backtracking to also display 'footprints' which visually indicate maked positions while backtracking.
 - Both backtracking and perusing be filtered programmatically by passing in a predicate function.
+*** Why the big change? Why all the OO complexity?
+I generally noticed that the thing I was tracking was not so much the point *position*, but user *context*. And context I realized can cover a lot, and arguably, could cover the entire state of Emacs, or your computer, or, well, the universe at the moment that context is recorded. So rather than try to have gumshoe cover all possible definitions of context, I tried to just focus on the interface, and provide a clear path to extension, for me or anyone. So that’s where all the OO stuff came from. It’s not complete, but that’s where I’m going with it. The benefits may not be obvious at the time of this writing, but I hope will be as I add things.
 
 * Similar Packages
 If Gumshoe doesn’t suit you, here are some more Point history tracking packages that may.
