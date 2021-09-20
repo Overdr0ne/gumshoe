@@ -45,7 +45,7 @@
                 :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
   "Entry class for Gumshoe’s backlog, with perspectives.")
 
-(cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--entry))
+(cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--persp-entry))
   "Check if ENTRY in the current perspective."
   (equal (oref entry perspective) (persp-current-name)))
 
@@ -63,11 +63,8 @@
     (pop-to-buffer buffer)
     (goto-char position)))
 
-(defun gumshoe-persp--config ()
-  "Set up a simple configuration for gumshoe-persp."
-  (setf gumshoe-entry-type 'gumshoe--persp-entry)
+(when (equal gumshoe-entry-type 'gumshoe--persp-entry)
   (gumshoe--make-xface gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp gumshoe--in-current-persp-p))
-(when gumshoe-persp-auto-config (gumshoe-persp--config))
 
 (provide 'gumshoe-persp)
 ;;; gumshoe-persp.el ends here
