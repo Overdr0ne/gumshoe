@@ -63,7 +63,7 @@
   "Type of entry Gumshoe should use in the backlog."
   :type 'symbol)
 
-(defcustom gumshoe-slot-schema '(time buffer position line)
+(defcustom gumshoe-peruse-slot-schema '(time buffer position line)
   "Entry slot order for perusing the backlog."
   :type 'list)
 
@@ -395,7 +395,7 @@ Results will be filtered using FILTER-NAME function."
      (defun ,peruse-name ()
        (interactive)
        (gumshoe--peruse (ring-elements (oref gumshoe-mode backlog))
-                        gumshoe-slot-schema
+                        gumshoe-peruse-slot-schema
                         #',filter-name))
      (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+ #',filter-name))
      (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack (oref gumshoe-mode backtracker) #'- #',filter-name))))

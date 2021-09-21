@@ -63,8 +63,8 @@
     (pop-to-buffer buffer)
     (goto-char position)))
 
-(when (equal gumshoe-entry-type 'gumshoe--persp-entry)
-  (gumshoe--make-xface gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp gumshoe--in-current-persp-p))
+(setf gumshoe-entry-type 'gumshoe--persp-entry)
+(gumshoe--make-xface gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp gumshoe--in-current-persp-p)
 
 (provide 'gumshoe-persp)
 ;;; gumshoe-persp.el ends here

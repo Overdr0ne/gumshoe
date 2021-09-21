@@ -16,15 +16,13 @@ Gumshoe does not keep track of every move you make, rather, only at increments o
 I just use straight+use-package like so:
 #+begin_src elisp
   (use-package gumshoe
-    :straight (gumshoe :type git
-                       :host github
-                       :repo "Overdr0ne/gumshoe"
-                       :branch "master")
-    :config
-    ;; The minor mode must be enabled to begin tracking
+    :init
+    ;; To use perspectives, you must tell gumshoe to use the extended type
     (setf gumshoe-entry-type ’gumshoe--persp-entry)
+    ;; The minor mode must be enabled to begin tracking
     (global-gumshoe-mode 1)
-    (setf gumshoe-slot-schema '(perspective buffer position line)))
+    ;; Tell peruse what slots to display
+    (setf gumshoe-peruse-slot-schema '(perspective buffer position line)))
 #+end_src
 And no need to use all of that of course (though I do), just pick what you like.
 
@@ -98,7 +96,7 @@ I generally noticed that the thing I was tracking was not so much the point *pos
 
 * Similar Packages
 If Gumshoe doesn’t suit you, here are some more Point history tracking packages that may.
-- https://github.com/alphapapa/dogears.el Dogears is particularly similar to gumshoe. They both have automatic spatial and temporal tracking, and allows visual navigation of the log. There may actually be some sort of convergence of these packages at some point. It’s an open issue.
+- https://github.com/alphapapa/dogears.el Dogears is particularly similar to gumshoe. I took the idea of having a unified log from here. They also both have automatic spatial and temporal tracking, and allows visual navigation of the log. There may actually be some sort of convergence of these packages at some point. It’s an open issue.
 - https://github.com/blue0513/point-history
 - https://github.com/tcw165/history
 - https://github.com/dgutov/point-stack/
