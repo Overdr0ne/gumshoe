@@ -33,8 +33,7 @@
 ;;; Code:
 
 (require 'gumshoe-core)
-(with-eval-after-load 'perspective
-  (require 'gumshoe-persp))
+(require 'gumshoe-perspective nil t)
 
 (provide 'gumshoe)
 ;;; gumshoe.el ends here
