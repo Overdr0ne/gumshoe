@@ -388,7 +388,7 @@ Results will be filtered using FILTER-NAME function."
   `(progn
      (defun ,peruse-name ()
        (interactive)
-       (gumshoe--peruse (ring-elements (oref gumshoe-mode backlog))
+       (gumshoe--peruse (ring-elements (oref (oref gumshoe-mode backlog) ring))
                         gumshoe-slot-schema
                         #',filter-name))
      (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+ #',filter-name))
