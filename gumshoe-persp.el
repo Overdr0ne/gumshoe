@@ -63,8 +63,26 @@
     (pop-to-buffer buffer)
     (goto-char position)))
 
-(when (equal gumshoe-entry-type 'gumshoe--persp-entry)
-  (gumshoe--make-xface gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp gumshoe--in-current-persp-p))
+(define-minor-mode global-gumshoe-persp-mode
+  "Toggle global Gumshoe minor mode.
+
+Interactively with no argument, this command toggles the mode.
+A positive prefix argument enables the mode, any other prefix
+argument disables it.  From Lisp, argument omitted or nil enables
+the mode, `toggle' toggles the state.
+
+When enabled, Gumshoe logs point movements when they exceed the
+`gumshoe-follow-distance', or when the user is idle longer than
+`gumshoe-idle-time'."
+  :init-value nil
+  :lighter " Gumshoe:persp"
+  :group 'gumshoe
+  :global t
+  (if global-gumshoe-persp-mode
+      (setf gumshoe-mode (gumshoe--init (gumshoe--mode) 'gumshoe--persp-entry))
+    (setf gumshoe-mode (gumshoe--shutdown gumshoe-mode))))
+
+(gumshoe--make-xface gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp gumshoe--in-current-persp-p)
 
 (provide 'gumshoe-persp)
 ;;; gumshoe-persp.el ends here

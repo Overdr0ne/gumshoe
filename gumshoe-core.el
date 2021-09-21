@@ -369,15 +369,9 @@ When enabled, Gumshoe logs point movements when they exceed the
   :group 'gumshoe
   :global t
   (if global-gumshoe-mode
-      (setf gumshoe-mode (gumshoe--init (gumshoe--mode) gumshoe-entry-type))
+      (setf gumshoe-mode (gumshoe--init (gumshoe--mode) 'gumshoe--entry))
     (setf gumshoe-mode (gumshoe--shutdown gumshoe-mode))))
 
-(defun global-gumshoe-persp-mode (&optional _)
-  "Obsolete mode for perspective local tracking."
-  (interactive)
-  (setf gumshoe-entry-type 'gumshoe--persp-entry)
-  (global-gumshoe-mode +1))
-(make-obsolete 'global-gumshoe-persp-mode 'global-gumshoe-mode "2.0")
 (defun global-gumshoe-buf-mode (&optional _)
   "Obsolete mode for buffer local tracking."
   (interactive) (global-gumshoe-mode +1))
