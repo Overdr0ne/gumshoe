@@ -117,3 +117,11 @@
   - extensible scoping: if you can make arbitrary variables local to your scope, you can make a gumshoe mode for that scope. Scoped logs work independently, and don’t interfere with the global-mark-ring.
   - works ootb without much configuration or dependency on external packages
   Packages above may have one or two of these features, but changes on the order of a complete rewrite would be required to make them work like gumshoe. But comments are totally welcome if you’d like to open an issue.
+
+* Outstanding issues
+** Extension is complex
+- Gumshoe needs to know entry format before it begins tracking. This makes dynamically changing that format effectively impossible without reinitializing the mode.
+- To require fields from multiple elpa/melpa packages requires defining a new class for each combination(to avoid multiple inheritance). This is good to a certain extent, to force me or anyone else to think about interactions between those packages, like, jump operations often need to be sequenced carefully to work as intended.
+** Make common ’context’ interface
+- The gumshoe--entry class is effectively a replacement of bookmarks. I’d like to maybe define an interface using cl-defgeneric that might just work for everything, so people could use a function like context--jump, and it would dispatch the correct method for bookmarks or gumshoe--entry, or whatever.
+** I’d like to add an ’ibacklog’ that works like ibuffer as an alternative to peruse
