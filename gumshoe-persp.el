@@ -63,6 +63,7 @@
     (pop-to-buffer buffer)
     (goto-char position)))
 
+;;;###autoload
 (define-minor-mode global-gumshoe-persp-mode
   "Toggle global Gumshoe minor mode.
 
