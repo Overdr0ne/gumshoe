@@ -1,11 +1,11 @@
 [[https://melpa.org/#/gumshoe][file:https://melpa.org/packages/gumshoe-badge.svg]]
 
-#+TITLE: Gumshoe: scoped spatial and temporal Point movement tracking
+#+TITLE: Gumshoe: a smart POINT tracker
 
 [[./noir.jpg]]
 
 * Introduction
-  Gumshoe is a collection of global minor modes that quietly keep tabs on your Point movements so you can retrace your steps if you ever need a reminder of where you’ve been. Each mode keeps a log local to some scope.
+  Gumshoe is a daemon that quietly keep tabs on your Point movements so you can retrace your steps if you ever need a reminder of where you’ve been. Each mode keeps a log local to some scope.
 
   [[./peruse-demo.gif]]
   (This demonstrates the non-built-in gumshoe-peruse-globally command described below, because it’s the most visual. I usually just use gumshoe--backtrack-back/forward and its variants.)
@@ -39,7 +39,7 @@
   - Configure the number of locations logged with the *gumshoe-log-len* variable.
   - Horizontal distance is scaled down by a factor of 4 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
 ** Backtracking
-   Backtracking works a bit like isearch. Point will jump sequentially between points in the backlog.
+   Backtracking works a bit like isearch or Vim’s jump-list. Point will jump sequentially between points in the backlog.
    [[./backtrack-demo.gif]]
    - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
    - There is built-in support for buffer-local backtracking using commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
