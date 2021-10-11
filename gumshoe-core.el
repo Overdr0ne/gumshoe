@@ -178,7 +178,7 @@ Pre-filter results with ENTRY-FILTER."
     (gumshoe--jump (cadr (assoc candidate candidates)))))
 
 ;; tracking
-(defun gumshoe--line-number-at (pos)
+(defun gumshoe--column-at (pos)
   "Return column number at POS."
   (save-excursion
     (goto-char pos)
@@ -189,7 +189,7 @@ Pre-filter results with ENTRY-FILTER."
          (line (line-number-at-pos pos))
          (dline (abs (- line
                         (line-number-at-pos (point)))))
-         (column (gumshoe--line-number-at pos))
+         (column (gumshoe--column-at pos))
          (dcolumn (abs (- column
                           (current-column))))
          (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
