@@ -80,7 +80,9 @@ When enabled, Gumshoe logs point movements when they exceed the
   :group 'gumshoe
   :global t
   (if global-gumshoe-persp-mode
-      (setf gumshoe-mode (gumshoe--init (gumshoe--mode) 'gumshoe--persp-entry))
+      (progn
+	(setf gumshoe-entry-type 'gumshoe--persp-entry)
+	(setf gumshoe-mode (gumshoe--init (gumshoe--mode))))
     (setf gumshoe-mode (gumshoe--shutdown gumshoe-mode))))
 
 (gumshoe--make-xface gumshoe-persp-backtrack-back gumshoe-persp-backtrack-forward gumshoe-peruse-in-persp gumshoe--in-current-persp-p)
