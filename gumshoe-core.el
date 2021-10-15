@@ -197,12 +197,12 @@ Pre-filter results with ENTRY-FILTER."
   (and
    (equal (oref self filename) (oref other filename))
    (equal (oref self position) (oref other position))))
-(defun gumshoe--log-if-necessary (ring entry-type &optional alarmp)
+(defun gumshoe--log-if-necessary (ring &optional alarmp)
   "Check current position and log in RING if needed.
 
 Log automatically if ALARMP is t."
   (unless (minibufferp)
-    (let ((new-entry (funcall entry-type)))
+    (let ((new-entry (funcall gumshoe-entry-type)))
       (when (or (ring-empty-p ring)
                 (let ((latest-entry (ring-ref ring 0)))
                   (and (not (gumshoe--equal new-entry latest-entry))
@@ -218,12 +218,12 @@ Log automatically if ALARMP is t."
       (setf startp t))
     (setf backtrackingp nil)))
 
-(cl-defmethod gumshoe--post-track ((self gumshoe--backtracker) entry-type)
+(cl-defmethod gumshoe--post-track ((self gumshoe--backtracker))
   "Log the current position to SELF if not backtracking."
   (with-slots (backtrackingp backlog footprints) self
     (unless backtrackingp
       (gumshoe--hide-footprints footprints)
-      (gumshoe--log-if-necessary backlog entry-type))))
+      (gumshoe--log-if-necessary backlog))))
 
 ;;; footprints
 (cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id face)
@@ -304,11 +304,11 @@ INCREMENTER increments the index in SELF."
         (gumshoe--jump (nth index filtered)))
       (setf backtrackingp t)
       (when msg (message msg)))))
-(cl-defmethod gumshoe--timer-callback ((self gumshoe--backtracker) entry-type)
+(cl-defmethod gumshoe--timer-callback ((self gumshoe--backtracker))
   "Called by timer to log current position in SELF."
   (with-slots (backtrackingp backlog) self
     (unless backtrackingp
-      (gumshoe--log-if-necessary backlog entry-type t))))
+      (gumshoe--log-if-necessary backlog t))))
 
 ;;; Mode definition
 (defclass gumshoe--mode ()
@@ -317,16 +317,16 @@ INCREMENTER increments the index in SELF."
    (timer :initform nil
           :documentation "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'."))
   "Gumshoe mode information.")
-(cl-defmethod gumshoe--init ((self gumshoe--mode) entry-type)
-  "Initialize SELF with ENTRY-TYPE, setting hooks and timers."
+(cl-defmethod gumshoe--init ((self gumshoe--mode))
+  "Initialize SELF, setting hooks and timers."
   (with-slots (backtracker timer) self
     (setf backtracker (gumshoe--backtracker))
     (setf timer (run-with-idle-timer gumshoe-idle-time t
-                                     (apply-partially #'gumshoe--timer-callback backtracker entry-type)))
+                                     (apply-partially #'gumshoe--timer-callback backtracker)))
     (add-hook 'pre-command-hook
               (apply-partially #'gumshoe--pre-track backtracker))
     (add-hook 'post-command-hook
-              (apply-partially #'gumshoe--post-track backtracker entry-type)))
+              (apply-partially #'gumshoe--post-track backtracker)))
   self)
 (cl-defmethod gumshoe--shutdown ((self gumshoe--mode))
   "Shutdown SELF, removing hooks and cancelling timers."
