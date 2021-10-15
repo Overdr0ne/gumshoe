@@ -116,15 +116,8 @@ See `display-buffer' for more information"
   "Check if ENTRY in the current perspective."
   (equal (oref entry buffer) (current-buffer)))
 
-(defclass gumshoe--backlog ()
-  ((ring :initform (make-ring gumshoe-log-len)
-         :documentation "Ring-buffer to remember the previous editing position.")
-   (entry-type :initform 'gumshoe--entry :initarg :entry-type
-               :documentation "Type of entries in the log ring."))
-  "Gumshoe’s backlog for tracking POINT positions.")
-
 (defclass gumshoe--backtracker ()
-  ((backlog :initform nil :initarg :backlog
+  ((backlog :initform (make-ring gumshoe-log-len)
             :documentation "Ring-buffer to remember the previous editing position.")
    (filtered :initform nil
              :documentation "The filtered log list used when backtracking.")
@@ -140,22 +133,23 @@ See `display-buffer' for more information"
         :documentation "Stores info for the user during backtracking."))
   "Gumshoe’s backtracker keeps track of backtracking state.")
 
-(cl-defmethod gumshoe--clean ((self gumshoe--backlog))
-  "Cleanup entries from SELF without a buffer."
-  (with-slots (ring) self
-    (let ((i 0)
-          (n (ring-length ring)))
-      (while (< i n)
-        (let* ((entry (ring-ref ring i))
-               (buffer (oref entry buffer)))
-          (if (buffer-live-p buffer)
-              (cl-incf i)
-            (ring-remove ring i)))))))
+(cl-defmethod gumshoe--clean (ring)
+  "Cleanup entries from RING without a buffer."
+  (let ((i 0)
+        (n (ring-length ring)))
+    (while (< i n)
+      (let* ((entry (ring-ref ring i))
+             (buffer (oref entry buffer)))
+        (if (buffer-live-p buffer)
+            (cl-incf i)
+          (ring-remove ring i))))))
 
 ;;; Peruse
 (defun gumshoe--format-record (rec format-string slot-spec)
   "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
-  (let* ((slot-vals (mapcar #'(lambda (slot) (slot-value rec slot)) slot-spec)))
+  (let* ((slot-vals (mapcar #'(lambda (slot)
+				  (ignore-error invalid-slot-name
+				    (slot-value rec slot))) slot-spec)))
     (apply #'format format-string slot-vals)))
 (defun gumshoe--format-records (rec-list format-string slot-spec)
   "Format records in REC-LIST according to FORMAT-STRING using SLOT-SPEC fields."
@@ -203,20 +197,19 @@ Pre-filter results with ENTRY-FILTER."
   (and
    (equal (oref self filename) (oref other filename))
    (equal (oref self position) (oref other position))))
-(cl-defmethod gumshoe--log-if-necessary ((self gumshoe--backlog) &optional alarmp)
-  "Check current position and log in SELF if needed.
+(defun gumshoe--log-if-necessary (ring entry-type &optional alarmp)
+  "Check current position and log in RING if needed.
 
 Log automatically if ALARMP is t."
-  (with-slots (ring entry-type) self
-    (unless (minibufferp)
-      (let ((new-entry (funcall entry-type)))
-        (when (or (ring-empty-p ring)
-                  (let ((latest-entry (ring-ref ring 0)))
-                    (and (not (gumshoe--equal new-entry latest-entry))
-                         (or alarmp
-                             (not (gumshoe--in-current-buffer-p latest-entry))
-                             (gumshoe--end-of-leash-p latest-entry)))))
-          (ring-insert ring new-entry))))))
+  (unless (minibufferp)
+    (let ((new-entry (funcall entry-type)))
+      (when (or (ring-empty-p ring)
+                (let ((latest-entry (ring-ref ring 0)))
+                  (and (not (gumshoe--equal new-entry latest-entry))
+                       (or alarmp
+                           (not (gumshoe--in-current-buffer-p latest-entry))
+                           (gumshoe--end-of-leash-p latest-entry)))))
+        (ring-insert ring new-entry)))))
 
 (cl-defmethod gumshoe--pre-track ((self gumshoe--backtracker))
   "Initialize backtracking for SELF if necessary."
@@ -225,12 +218,12 @@ Log automatically if ALARMP is t."
       (setf startp t))
     (setf backtrackingp nil)))
 
-(cl-defmethod gumshoe--post-track ((self gumshoe--backtracker))
+(cl-defmethod gumshoe--post-track ((self gumshoe--backtracker) entry-type)
   "Log the current position to SELF if not backtracking."
   (with-slots (backtrackingp backlog footprints) self
     (unless backtrackingp
       (gumshoe--hide-footprints footprints)
-      (gumshoe--log-if-necessary backlog))))
+      (gumshoe--log-if-necessary backlog entry-type))))
 
 ;;; footprints
 (cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id face)
@@ -289,8 +282,8 @@ In particular, notify users if index would go outside log boundaries."
   (with-slots (backlog filtered footprints msg startp index) self
     (gumshoe--clean backlog)
     (setf filtered (if filter
-                       (seq-filter filter (ring-elements (oref backlog ring)))
-                     (ring-elements (oref backlog ring))))
+                       (seq-filter filter (ring-elements backlog))
+                     (ring-elements backlog)))
     (when gumshoe-show-footprints-p
       (setf footprints (gumshoe--mark-footprints filtered)))
     (setf startp nil)
@@ -311,34 +304,29 @@ INCREMENTER increments the index in SELF."
         (gumshoe--jump (nth index filtered)))
       (setf backtrackingp t)
       (when msg (message msg)))))
-(cl-defmethod gumshoe--timer-callback ((self gumshoe--backtracker))
+(cl-defmethod gumshoe--timer-callback ((self gumshoe--backtracker) entry-type)
   "Called by timer to log current position in SELF."
   (with-slots (backtrackingp backlog) self
     (unless backtrackingp
-      (gumshoe--log-if-necessary backlog t))))
+      (gumshoe--log-if-necessary backlog entry-type t))))
 
 ;;; Mode definition
 (defclass gumshoe--mode ()
-  ((backlog :initform nil
-            :initarg :backlog
-            :documentation "Stores previous contexts recorded by Gumshoe.")
-   (backtracker :initform nil
+  ((backtracker :initform nil
                 :documentation "Stores the backtracking state.")
    (timer :initform nil
           :documentation "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'."))
   "Gumshoe mode information.")
 (cl-defmethod gumshoe--init ((self gumshoe--mode) entry-type)
   "Initialize SELF with ENTRY-TYPE, setting hooks and timers."
-  (with-slots (backlog backtracker timer) self
-    (setf backlog (gumshoe--backlog :entry-type entry-type))
-    (setf backtracker (gumshoe--backtracker
-                       :backlog backlog))
+  (with-slots (backtracker timer) self
+    (setf backtracker (gumshoe--backtracker))
     (setf timer (run-with-idle-timer gumshoe-idle-time t
-                                     (apply-partially #'gumshoe--timer-callback backtracker)))
+                                     (apply-partially #'gumshoe--timer-callback backtracker entry-type)))
     (add-hook 'pre-command-hook
               (apply-partially #'gumshoe--pre-track backtracker))
     (add-hook 'post-command-hook
-              (apply-partially #'gumshoe--post-track backtracker)))
+              (apply-partially #'gumshoe--post-track backtracker entry-type)))
   self)
 (cl-defmethod gumshoe--shutdown ((self gumshoe--mode))
   "Shutdown SELF, removing hooks and cancelling timers."
@@ -369,7 +357,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   :group 'gumshoe
   :global t
   (if global-gumshoe-mode
-      (setf gumshoe-mode (gumshoe--init (gumshoe--mode) 'gumshoe--entry))
+      (setf gumshoe-mode (gumshoe--init (gumshoe--mode) gumshoe-entry-type))
     (setf gumshoe-mode (gumshoe--shutdown gumshoe-mode))))
 
 (defun global-gumshoe-buf-mode (&optional _)
@@ -388,7 +376,7 @@ Results will be filtered using FILTER-NAME function."
   `(progn
      (defun ,peruse-name ()
        (interactive)
-       (gumshoe--peruse (ring-elements (oref (oref gumshoe-mode backlog) ring))
+       (gumshoe--peruse (ring-elements (oref (oref gumshoe-mode backtracker) backlog))
                         gumshoe-slot-schema
                         #',filter-name))
      (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+ #',filter-name))
