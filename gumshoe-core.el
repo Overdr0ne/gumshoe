@@ -357,7 +357,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   :group 'gumshoe
   :global t
   (if global-gumshoe-mode
-      (setf gumshoe-mode (gumshoe--init (gumshoe--mode) gumshoe-entry-type))
+      (setf gumshoe-mode (gumshoe--init (gumshoe--mode)))
     (setf gumshoe-mode (gumshoe--shutdown gumshoe-mode))))
 
 (defun global-gumshoe-buf-mode (&optional _)
