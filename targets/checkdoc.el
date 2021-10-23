@@ -1,0 +1,1 @@
+(checkdoc-file "gumshoe.el")
