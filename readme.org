@@ -1,5 +1,5 @@
+[[https://github.com/Overdr0ne/gumshoe/actions/workflows/test.yml][https://github.com/Overdr0ne/gumshoe/actions/workflows/test.yml/badge.svg]]
 [[https://melpa.org/#/gumshoe][file:https://melpa.org/packages/gumshoe-badge.svg]]
-
 #+TITLE: Gumshoe: a smart POINT tracker
 
 [[./noir.jpg]]
