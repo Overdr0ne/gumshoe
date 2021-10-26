@@ -35,6 +35,19 @@
   (global-gumshoe-mode +1)
   (global-gumshoe-mode -1))
 
+(ert-deftest gumshoe-backtrack ()
+  (let (start gumshoe-show-footprints-p)
+    (save-excursion
+      (global-gumshoe-mode +1)
+      (setf gumshoe-show-footprints-p nil)
+      (call-interactively #'gumshoe-backtrack-back)
+      (setf start (point))
+      (call-interactively #'gumshoe-backtrack-back)
+      (call-interactively #'gumshoe-backtrack-forward)
+      (should (equal start (point)))
+      (call-interactively #'forward-char)
+      (global-gumshoe-mode -1))))
+
 (defun gumshoe-test-run-tests ()
   (let ((test-sets
          '(gumshoe-mode-toggle))
