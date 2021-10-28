@@ -67,6 +67,10 @@
   "Entry slot order for perusing the backlog."
   :type 'list)
 
+(defface gumshoe--peruse-separator-face
+  '((t
+     :inherit diary))
+  "Face for peruse separators.")
 (defface gumshoe--footprint-face
   '((t
      :inherit highlight
@@ -159,10 +163,13 @@ See `display-buffer' for more information"
 
 Pre-filter results with ENTRY-FILTER."
   (let* ((entries recs)
-         (format-schema (string-join (mapcar #'symbol-name slot-spec) "|"))
-         (prompt (concat "(" format-schema "): "))
+         (format-schema (string-join (mapcar #'symbol-name slot-spec) (propertize "|" 'face 'gumshoe--peruse-separator-face)))
+         (prompt (concat (propertize "(" 'face 'gumshoe--peruse-separator-face)
+			 format-schema
+			 (propertize ")" 'face 'gumshoe--peruse-separator-face) ": "))
          (format-components (mapcar #'(lambda (_) "%s") slot-spec))
-         (format-string (string-join format-components "|"))
+	 (separator (propertize "|" 'face 'gumshoe--peruse-separator-face))
+         (format-string (string-join format-components separator))
          (filtered-entries (if entry-filter
                                (seq-filter entry-filter entries)
                              entries))
