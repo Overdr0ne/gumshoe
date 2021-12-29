@@ -251,8 +251,9 @@ Log automatically if ALARMP is t."
     (overlay-put footprint 'after-string label)))
 (defun gumshoe--hl-current-footprint (footprints prev-index cur-index)
   "Replace PREV-INDEX with CUR-INDEX as current footprint in FOOTPRINTS."
-  (gumshoe--replace-footprint footprints prev-index 'gumshoe--footprint-face)
-  (gumshoe--replace-footprint footprints cur-index 'gumshoe--current-footprint-face))
+  (when footprints
+    (gumshoe--replace-footprint footprints prev-index 'gumshoe--footprint-face)
+    (gumshoe--replace-footprint footprints cur-index 'gumshoe--current-footprint-face)))
 (defun gumshoe--mark-footprints (entries)
   "Display footprints for all ENTRIES."
   (let ((i 1) footprints)
