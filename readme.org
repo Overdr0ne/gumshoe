@@ -43,12 +43,12 @@
    Backtracking works a bit like isearch or Vim’s jump-list. Point will jump sequentially between points in the backlog.
    [[./backtrack-demo.gif]]
    - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
-   - There is built-in support for buffer-local backtracking using commands: *gumshoe-buf-backtrack-back* and *gumshoe-buf-backtrack-forward*, such that all logs can be tracked independently.
+   - There is built-in support for buffer-local and window-local backtracking using commands: *gumshoe-[buf/win]-backtrack-back* and *gumshoe-[buf/win]-backtrack-forward*, such that all logs can be tracked independently.
    - I have also provided default support for [[https://github.com/nex3/perspective-el][perspective]]-local backtracking using commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
    - By default, Gumshoe also marks "footprints", an overlay visually indicating entry points in the buffer. Toggle *gumshoe-show-footprints-p* to disable them.
 ** Perusing
    You can also visually browse the backlog in the minibuffer with the peruse commands:
-   *gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer* and *gumshoe--peruse-in-persp*.
+   *gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer*, *gumshoe-peruse-in-window* and *gumshoe--peruse-in-persp*.
    - Customize *gumshoe-slot-schema* to specify which, and in what order you would like entry fields displayed.
    - Make your own peruse commands by providing a filter predicate to gumshoe--peruse.
 
