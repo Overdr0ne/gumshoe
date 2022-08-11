@@ -152,8 +152,8 @@ See `display-buffer' for more information"
 (defun gumshoe--format-record (rec format-string slot-spec)
   "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
   (let* ((slot-vals (mapcar #'(lambda (slot)
-				  (ignore-error invalid-slot-name
-				    (slot-value rec slot))) slot-spec)))
+				                (ignore-error invalid-slot-name
+				                  (slot-value rec slot))) slot-spec)))
     (apply #'format format-string slot-vals)))
 (defun gumshoe--format-records (rec-list format-string slot-spec)
   "Format records in REC-LIST according to FORMAT-STRING using SLOT-SPEC fields."
@@ -165,10 +165,10 @@ Pre-filter results with ENTRY-FILTER."
   (let* ((entries recs)
          (format-schema (string-join (mapcar #'symbol-name slot-spec) (propertize "|" 'face 'gumshoe--peruse-separator-face)))
          (prompt (concat (propertize "(" 'face 'gumshoe--peruse-separator-face)
-			 format-schema
-			 (propertize ")" 'face 'gumshoe--peruse-separator-face) ": "))
+			             format-schema
+			             (propertize ")" 'face 'gumshoe--peruse-separator-face) ": "))
          (format-components (mapcar #'(lambda (_) "%s") slot-spec))
-	 (separator (propertize "|" 'face 'gumshoe--peruse-separator-face))
+	     (separator (propertize "|" 'face 'gumshoe--peruse-separator-face))
          (format-string (string-join format-components separator))
          (filtered-entries (if entry-filter
                                (seq-filter entry-filter entries)
