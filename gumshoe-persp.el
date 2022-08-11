@@ -61,7 +61,8 @@
   (with-slots (buffer position perspective) self
     (persp-switch perspective)
     (pop-to-buffer buffer)
-    (goto-char position)))
+    (goto-char position))
+  (gumshoe--flash-cursor))
 
 ;;;###autoload
 (define-minor-mode global-gumshoe-persp-mode

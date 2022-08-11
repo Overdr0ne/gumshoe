@@ -109,11 +109,36 @@ See `display-buffer' for more information"
   "Return t if SELF is valid."
   (not (cl-check-type self gumshoe--entry)))
 
+(defcustom gumshoe-cursor-flash-p t
+  "Flash the cursor on jump."
+  :type 'integer)
+
+(defcustom gumshoe-cursor-flash-times 2
+  "Flash the cursor this many times on jump."
+  :type 'integer)
+
+(defcustom gumshoe-cursor-flash-interval 0.2
+  "Flash the cursor this many times on jump."
+  :type 'integer)
+
+(defun gumshoe--flash-cursor ()
+  "Flash the cursor."
+  (when gumshoe-cursor-flash-p
+    (let (cursor
+          (cursor-bg (face-background 'cursor))
+		  (match-bg (face-background 'match)))
+	  (dotimes (_ gumshoe-cursor-flash-times)
+	    (set-face-background 'cursor match-bg)
+	    (sit-for gumshoe-cursor-flash-interval)
+	    (set-face-background 'cursor cursor-bg)
+	    (sit-for gumshoe-cursor-flash-interval)))))
+
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   "Jump Point to buffer and position in SELF."
   (with-slots (buffer position) self
     (pop-to-buffer buffer)
-    (goto-char position)))
+    (goto-char position))
+  (gumshoe--flash-cursor))
 
 ;;; filter predicates
 (cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
