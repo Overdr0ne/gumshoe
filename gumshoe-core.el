@@ -102,7 +102,9 @@ See `display-buffer' for more information"
    (time :initform (current-time-string)
          :documentation "Indicates the date and time of this entry.")
    (major-mode :initform (symbol-name major-mode)
-               :documentation "Major mode of this entry."))
+               :documentation "Major mode of this entry.")
+   (window :initform (get-buffer-window (current-buffer))
+           :documentation "Window of this entry."))
   "Entry class for Gumshoe’s backlog.")
 
 (cl-defmethod gumshoe--valid-p ((self gumshoe--entry))
@@ -144,6 +146,10 @@ See `display-buffer' for more information"
 (cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
   "Check if ENTRY in the current perspective."
   (equal (oref entry buffer) (current-buffer)))
+
+(cl-defmethod gumshoe--in-current-window-p ((entry gumshoe--entry))
+  "Check if ENTRY in the current window."
+  (equal (oref entry window) (get-buffer-window (current-buffer))))
 
 (defclass gumshoe--backtracker ()
   ((backlog :initform (make-ring gumshoe-log-len)
@@ -416,6 +422,7 @@ Results will be filtered using FILTER-NAME function."
      (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack (oref gumshoe-mode backtracker) #'- #',filter-name))))
 (gumshoe--make-xface gumshoe-backtrack-back gumshoe-backtrack-forward gumshoe-peruse-globally gumshoe--valid-p)
 (gumshoe--make-xface gumshoe-buf-backtrack-back gumshoe-buf-backtrack-forward gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
+(gumshoe--make-xface gumshoe-win-backtrack-back gumshoe-win-backtrack-forward gumshoe-peruse-in-window gumshoe--in-current-window-p)
 
 (provide 'gumshoe-core)
 ;;; gumshoe-core.el ends here
