@@ -67,6 +67,10 @@
   "Entry slot order for perusing the backlog."
   :type 'list)
 
+(defcustom gumshoe-prefer-same-window nil
+  "Prefer jumping using the window where point currently is."
+  :type 'boolean)
+
 (defface gumshoe--peruse-separator-face
   '((t
      :inherit diary))
@@ -114,7 +118,9 @@ See `display-buffer' for more information"
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   "Jump Point to buffer and position in SELF."
   (with-slots (buffer position) self
-    (pop-to-buffer buffer)
+    (if gumshoe-prefer-same-window
+        (pop-to-buffer-same-window buffer)
+      (pop-to-buffer buffer))
     (goto-char position)))
 
 ;;; filter predicates
