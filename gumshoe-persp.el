@@ -60,7 +60,9 @@
   "Jump Point to buffer and position in SELF."
   (with-slots (buffer position perspective) self
     (persp-switch perspective)
-    (pop-to-buffer buffer)
+    (if gumshoe-prefer-same-window
+        (pop-to-buffer-same-window buffer)
+      (pop-to-buffer buffer))
     (goto-char position)))
 
 ;;;###autoload
