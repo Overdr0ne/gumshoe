@@ -135,16 +135,14 @@ See `display-buffer' for more information"
 (defclass gumshoe--backtracker ()
   ((backlog :initform (make-ring gumshoe-log-len)
             :documentation "Ring-buffer to remember the previous editing position.")
+   (filter :initform #'gumshoe--valid-p
+           :documentation "Filter used when backtracking.")
    (filtered :initform nil
              :documentation "The filtered log list used when backtracking.")
    (footprints :initform nil
                :documentation "An overlay indicating previous locations.")
    (index :initform 0
           :documentation "Current index backwards into the log when backtracking.")
-   (backtrackingp :initform nil
-                  :documentation "Flag indicating when a gumshoe is using the log to backtrack.")
-   (startp :initform nil
-           :documentation "Flag indicating when backtracking has begun.")
    (msg :initform ""
         :documentation "Stores info for the user during backtracking."))
   "Gumshoe’s backtracker keeps track of backtracking state.")
@@ -252,20 +250,6 @@ Log automatically if ALARMP is t."
                            (gumshoe--end-of-leash-p latest-entry)))))
         (ring-insert ring new-entry)))))
 
-(cl-defmethod gumshoe--pre-track ((self gumshoe--backtracker))
-  "Initialize backtracking for SELF if necessary."
-  (with-slots (backtrackingp startp) self
-    (unless backtrackingp
-      (setf startp t))
-    (setf backtrackingp nil)))
-
-(cl-defmethod gumshoe--post-track ((self gumshoe--backtracker))
-  "Log the current position to SELF if not backtracking."
-  (with-slots (backtrackingp backlog footprints) self
-    (unless backtrackingp
-      (gumshoe--hide-footprints footprints)
-      (gumshoe--log-if-necessary backlog))))
-
 ;;; footprints
 (cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id face)
   "Add footprint overlay to SELF, labeled with ID, using FACE."
@@ -319,38 +303,58 @@ In particular, notify users if index would go outside log boundaries."
      (t
       (setf msg (format "Gumshoe: entry #%i"
                         (- (length filtered) index)))))))
-(cl-defmethod gumshoe--init-backtracking ((self gumshoe--backtracker) filter)
+(cl-defmethod gumshoe--init-backtracking ((self gumshoe--backtracker) _filter)
   "FILTER SELF, and reset slots to start backtracking."
-  (with-slots (backlog filtered footprints msg startp index) self
+  (with-slots (backlog filter filtered footprints msg index) self
+    (setf filter _filter)
     (gumshoe--clean backlog)
     (setf filtered (if filter
                        (seq-filter filter (ring-elements backlog))
                      (ring-elements backlog)))
     (when gumshoe-show-footprints-p
       (setf footprints (gumshoe--mark-footprints filtered)))
-    (setf startp nil)
     (setf index 0)))
-(cl-defmethod gumshoe--backtrack ((self gumshoe--backtracker) incrementer filter)
+(cl-defmethod gumshoe--backtrack ((self gumshoe--backtracker) incrementer)
   "Backtrack using INCREMENTER in SELF.
 
 Only including results satisfying FILTER.
 INCREMENTER increments the index in SELF."
-  (with-slots (startp backtrackingp index filtered msg footprints) self
+  (with-slots (index filter filtered msg footprints) self
     (let ((prev-index index))
-      (when startp (gumshoe--init-backtracking self filter))
       (gumshoe--increment-index self incrementer)
-      (setf startp nil)
       (when gumshoe-show-footprints-p (gumshoe--hl-current-footprint footprints prev-index index))
       (if (not filtered)
           (setf msg "I haven’t recorded any entries here yet...")
         (gumshoe--jump (nth index filtered)))
-      (setf backtrackingp t)
       (when msg (message msg)))))
+(defun gumshoe-backtrack-back ()
+  "Backtrack back in the Gumshoe backlog."
+  (interactive)
+  (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+))
+
+(defun gumshoe-backtrack-forward ()
+  "Backtrack back in the Gumshoe backlog."
+  (interactive)
+  (gumshoe--backtrack (oref gumshoe-mode backtracker) #'-))
+
 (cl-defmethod gumshoe--timer-callback ((self gumshoe--backtracker))
   "Called by timer to log current position in SELF."
-  (with-slots (backtrackingp backlog) self
-    (unless backtrackingp
-      (gumshoe--log-if-necessary backlog t))))
+  (with-slots (backlog) self
+    (gumshoe--log-if-necessary backlog t)))
+
+(defvar global-gumshoe-backtracking-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap keyboard-quit] 'gumshoe-backtrack-quit)
+    map)
+  "Transient keymap activated during global-gumshoe-backtracking-mode.")
+(define-minor-mode global-gumshoe-backtracking-mode
+  "A transient global mode to start Gumshoe backtracking."
+  :global t
+  :keymap global-gumshoe-backtracking-mode-map
+  (if global-gumshoe-backtracking-mode
+      (push `(global-gumshoe-backtracking-mode . ,global-gumshoe-backtracking-mode-map)
+            minor-mode-map-alist)
+    (setf minor-mode-map-alist (assoc-delete-all 'global-gumshoe-backtracking-mode minor-mode-map-alist))))
 
 ;;; Mode definition
 (defclass gumshoe--mode ()
@@ -363,20 +367,16 @@ INCREMENTER increments the index in SELF."
   "Initialize SELF, setting hooks and timers."
   (with-slots (backtracker timer) self
     (setf backtracker (gumshoe--backtracker))
-    (setf timer (run-with-idle-timer gumshoe-idle-time t
-                                     (apply-partially #'gumshoe--timer-callback backtracker)))
-    (add-hook 'pre-command-hook
-              (apply-partially #'gumshoe--pre-track backtracker))
     (add-hook 'post-command-hook
-              (apply-partially #'gumshoe--post-track backtracker)))
+              (apply-partially #'gumshoe--log-if-necessary (oref backtracker backlog)))
+    (setf timer (run-with-idle-timer gumshoe-idle-time t
+                                     (apply-partially #'gumshoe--timer-callback backtracker))))
   self)
 (cl-defmethod gumshoe--shutdown ((self gumshoe--mode))
   "Shutdown SELF, removing hooks and cancelling timers."
   (with-slots (backtracker timer) self
-    (remove-hook 'pre-command-hook
-                 (apply-partially #'gumshoe--pre-track backtracker))
     (remove-hook 'post-command-hook
-                 (apply-partially #'gumshoe--post-track backtracker))
+                 (apply-partially #'gumshoe--log-if-necessary (oref backtracker backlog)))
     (cancel-timer timer))
   self)
 
@@ -408,7 +408,17 @@ When enabled, Gumshoe logs point movements when they exceed the
 (make-obsolete 'global-gumshoe-buf-mode 'global-gumshoe-mode "2.0")
 
 ;;; interface setup
-(defmacro gumshoe--make-xface (backtrack-back-name backtrack-forward-name peruse-name filter-name)
+(defun gumshoe-backtrack-quit ()
+  "Quit backtracking."
+  (interactive)
+  (global-gumshoe-backtracking-mode -1)
+  (let ((backtracker (oref gumshoe-mode backtracker)))
+    (remove-hook 'post-command-hook
+                 (apply-partially #'gumshoe--post-track backtracker))
+    (with-slots (footprints) backtracker
+      (gumshoe--hide-footprints footprints))))
+
+(defmacro gumshoe--make-xface (backtrack-name peruse-name filter-name)
   "Make a command interface for the given filter.
 
 BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking
@@ -421,11 +431,10 @@ Results will be filtered using FILTER-NAME function."
        (gumshoe--peruse (ring-elements (oref (oref gumshoe-mode backtracker) backlog))
                         gumshoe-slot-schema
                         #',filter-name))
-     (defun ,backtrack-back-name () (interactive) (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+ #',filter-name))
-     (defun ,backtrack-forward-name () (interactive) (gumshoe--backtrack (oref gumshoe-mode backtracker) #'- #',filter-name))))
-(gumshoe--make-xface gumshoe-backtrack-back gumshoe-backtrack-forward gumshoe-peruse-globally gumshoe--valid-p)
-(gumshoe--make-xface gumshoe-buf-backtrack-back gumshoe-buf-backtrack-forward gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
-(gumshoe--make-xface gumshoe-win-backtrack-back gumshoe-win-backtrack-forward gumshoe-peruse-in-window gumshoe--in-current-window-p)
+     (defun ,backtrack-name () (interactive) (global-gumshoe-backtracking-mode +1) (gumshoe--init-backtracking (oref gumshoe-mode backtracker) #',filter-name))))
+(gumshoe--make-xface gumshoe-backtrack gumshoe-peruse-globally gumshoe--valid-p)
+(gumshoe--make-xface gumshoe-buf-backtrack gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
+(gumshoe--make-xface gumshoe-win-backtrack gumshoe-peruse-in-window gumshoe--in-current-window-p)
 
 (provide 'gumshoe-core)
 ;;; gumshoe-core.el ends here
