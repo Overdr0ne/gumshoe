@@ -34,7 +34,7 @@
 
 (require 'gumshoe-core)
 (with-eval-after-load 'perspective
-  (require 'gumshoe-persp))
+  (add-hook 'persp-mode-hook (lambda () (require 'gumshoe-persp))))
 
 (provide 'gumshoe)
 ;;; gumshoe.el ends here
