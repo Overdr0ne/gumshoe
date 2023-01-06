@@ -78,12 +78,12 @@
 (defface gumshoe--footprint-face
   '((t
      :inherit highlight
-     :box (:line-width -3 :style released-button)
+     :box (:line-width -3 :style sunken)
      :weight bold))
   "Face for footprint overlays.")
 (defface gumshoe--current-footprint-face
   '((t :inherit match
-       :box (:line-width -3 :style released-button)
+       :box (:line-width -3 :style sunken)
        :weight bold))
   "Face for footprint overlays.")
 
