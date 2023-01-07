@@ -149,17 +149,38 @@ See `display-buffer' for more information"
         :documentation "Stores info for the user during backtracking."))
   "Gumshoe’s backtracker keeps track of backtracking state.")
 
-(cl-defmethod gumshoe--clean (ring)
-  "Cleanup entries from RING without a buffer."
-  (let ((i 0)
-        (n (ring-length ring)))
-    (while (< i n)
-      (let* ((entry (ring-ref ring i))
-             (buffer (oref entry buffer)))
-        (if (buffer-live-p buffer)
-            (cl-incf i)
-          (ring-remove ring i))))))
+(cl-defmethod gumshoe--clean-recent (ring)
+  "Cleanup recent dead entries from RING."
+  (unless (ring-empty-p ring)
+    (let ((i 0)
+          (n (ring-length ring))
+          (continuep t))
+      (while (and continuep (< i n))
+        (let* ((entry (ring-ref ring i))
+               (buffer (oref entry buffer))
+               (pos (oref entry position)))
+          (if (and (< pos (point-max))
+                   (buffer-live-p buffer))
+              (setq continuep nil)
+            (ring-remove ring i)
+            (cl-decf n))))))
+  )
 
+(cl-defmethod gumshoe--clean (ring)
+  "Cleanup dead entries from RING."
+  (unless (ring-empty-p ring)
+    (let ((i 0)
+          (n (ring-length ring)))
+      (while (< i n)
+        (let* ((entry (ring-ref ring i))
+               (buffer (oref entry buffer))
+               (pos (oref entry position)))
+          (if (and (< pos (point-max))
+                   (buffer-live-p buffer))
+              (cl-incf i)
+            (ring-remove ring i)
+            (cl-decf n))))))
+  )
 ;;; Peruse
 (defun gumshoe--format-record (rec format-string slot-spec)
   "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
@@ -220,7 +241,8 @@ Pre-filter results with ENTRY-FILTER."
   "Check current position and log in RING if needed.
 
 Log automatically if ALARMP is t."
-  (unless (minibufferp)
+  (unless (or global-gumshoe-backtracking-mode (minibufferp) (equal (point) (point-max)))
+    (gumshoe--clean-recent ring)
     (let ((new-entry (funcall gumshoe-entry-type)))
       (when (or (ring-empty-p ring)
                 (let ((latest-entry (ring-ref ring 0)))
