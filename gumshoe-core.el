@@ -233,7 +233,7 @@ Pre-filter results with ENTRY-FILTER."
    (equal (oref self filename) (oref other filename))
    (equal (oref self position) (oref other position))))
 (defun gumshoe--log-if-necessary (ring &optional alarmp)
-  "Check current position and log in RING if needed.
+  "Check current position and log in RING if significant.
 
 Log automatically if ALARMP is t."
   (unless (or global-gumshoe-backtracking-mode (minibufferp))
@@ -310,7 +310,7 @@ In particular, notify users if index would go outside log boundaries."
                      (ring-elements backlog)))
     (when gumshoe-show-footprints-p
       (setf footprints (gumshoe--mark-footprints filtered)))
-    (setf index 0)))
+    (setf index -1)))
 (cl-defmethod gumshoe--backtrack ((self gumshoe--backtracker) incrementer)
   "Backtrack using INCREMENTER in SELF.
 
@@ -349,8 +349,9 @@ INCREMENTER increments the index in SELF."
   :global t
   :keymap global-gumshoe-backtracking-mode-map
   (if global-gumshoe-backtracking-mode
-      (push `(global-gumshoe-backtracking-mode . ,global-gumshoe-backtracking-mode-map)
-            minor-mode-map-alist)
+      (progn
+        (push `(global-gumshoe-backtracking-mode . ,global-gumshoe-backtracking-mode-map)
+              minor-mode-map-alist))
     (setf minor-mode-map-alist (assoc-delete-all 'global-gumshoe-backtracking-mode minor-mode-map-alist))))
 
 ;;; Mode definition
@@ -428,7 +429,11 @@ Results will be filtered using FILTER-NAME function."
        (gumshoe--peruse (ring-elements (oref (oref gumshoe-mode backtracker) backlog))
                         gumshoe-slot-schema
                         #',filter-name))
-     (defun ,backtrack-name () (interactive) (global-gumshoe-backtracking-mode +1) (gumshoe--init-backtracking (oref gumshoe-mode backtracker) #',filter-name))))
+     (defun ,backtrack-name ()
+       (interactive)
+       (global-gumshoe-backtracking-mode +1)
+       (gumshoe--init-backtracking (oref gumshoe-mode backtracker) #',filter-name)
+       (gumshoe-backtrack-back))))
 (gumshoe--make-xface gumshoe-backtrack gumshoe-peruse-globally gumshoe--valid-p)
 (gumshoe--make-xface gumshoe-buf-backtrack gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
 (gumshoe--make-xface gumshoe-win-backtrack gumshoe-peruse-in-window gumshoe--in-current-window-p)
