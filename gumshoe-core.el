@@ -123,6 +123,14 @@ See `display-buffer' for more information"
       (pop-to-buffer buffer))
     (goto-char position)))
 
+(cl-defmethod gumshoe--dead-p ((self gumshoe--entry))
+  "Check if SELF is dead."
+  (let* ((buffer (oref self buffer))
+         (pos (oref self position)))
+    (or (not (buffer-live-p buffer))
+        (with-current-buffer buffer
+          (>= pos (point-max))))))
+
 ;;; filter predicates
 (cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
   "Check if ENTRY in the current perspective."
@@ -151,34 +159,23 @@ See `display-buffer' for more information"
   "Cleanup recent dead entries from RING."
   (unless (ring-empty-p ring)
     (let ((i 0)
-          (n (ring-length ring))
           (continuep t))
-      (while (and continuep (< i n))
-        (let* ((entry (ring-ref ring i))
-               (buffer (oref entry buffer))
-               (pos (oref entry position)))
-          (if (and (< pos (point-max))
-                   (buffer-live-p buffer))
-              (setq continuep nil)
-            (ring-remove ring i)
-            (cl-decf n))))))
-  )
+      (while (and continuep
+                  (< i (ring-length ring)))
+        (let ((entry (ring-ref ring i)))
+          (if (gumshoe--dead-p entry)
+              (ring-remove ring i)
+            (setq continuep nil)))))))
 
 (cl-defmethod gumshoe--clean (ring)
   "Cleanup dead entries from RING."
   (unless (ring-empty-p ring)
-    (let ((i 0)
-          (n (ring-length ring)))
-      (while (< i n)
-        (let* ((entry (ring-ref ring i))
-               (buffer (oref entry buffer))
-               (pos (oref entry position)))
-          (if (and (< pos (point-max))
-                   (buffer-live-p buffer))
-              (cl-incf i)
-            (ring-remove ring i)
-            (cl-decf n))))))
-  )
+    (let ((i 0))
+      (while (< i (ring-length ring))
+        (let ((entry (ring-ref ring i)))
+          (if (gumshoe--dead-p entry)
+              (ring-remove ring i)
+            (cl-incf i)))))))
 ;;; Peruse
 (defun gumshoe--format-record (rec format-string slot-spec)
   "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
@@ -239,7 +236,7 @@ Pre-filter results with ENTRY-FILTER."
   "Check current position and log in RING if needed.
 
 Log automatically if ALARMP is t."
-  (unless (or global-gumshoe-backtracking-mode (minibufferp) (equal (point) (point-max)))
+  (unless (or global-gumshoe-backtracking-mode (minibufferp))
     (gumshoe--clean-recent ring)
     (let ((new-entry (funcall gumshoe-entry-type)))
       (when (or (ring-empty-p ring)
