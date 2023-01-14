@@ -67,6 +67,10 @@
   "Entry slot order for perusing the backlog."
   :type 'list)
 
+(defcustom gumshoe-peruse-separator "|"
+  "Separator to be used between gumshoe slots."
+  :type 'string)
+
 (defcustom gumshoe-prefer-same-window nil
   "Prefer jumping using the window where point currently is."
   :type 'boolean)
@@ -191,12 +195,12 @@ See `display-buffer' for more information"
 
 Pre-filter results with ENTRY-FILTER."
   (let* ((entries recs)
-         (format-schema (string-join (mapcar #'symbol-name slot-spec) (propertize "|" 'face 'gumshoe--peruse-separator-face)))
+         (format-schema (string-join (mapcar #'symbol-name slot-spec) (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face)))
          (prompt (concat (propertize "(" 'face 'gumshoe--peruse-separator-face)
 			             format-schema
 			             (propertize ")" 'face 'gumshoe--peruse-separator-face) ": "))
          (format-components (mapcar #'(lambda (_) "%s") slot-spec))
-	     (separator (propertize "|" 'face 'gumshoe--peruse-separator-face))
+	     (separator (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face))
          (format-string (string-join format-components separator))
          (filtered-entries (if entry-filter
                                (seq-filter entry-filter entries)
