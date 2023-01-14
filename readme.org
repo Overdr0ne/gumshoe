@@ -25,9 +25,7 @@
       (global-gumshoe-mode +1)
       ;; customize peruse slot display if you like
       (setf gumshoe-slot-schema '(time buffer position line))
-      ;; personally, I use perspectives, so I use the provided extension
-      ;; :after (perspective)
-      ;; (global-gumshoe-persp-mode +1)
+      ;; personally, I use perspectives
       ;; (setf gumshoe-slot-schema '(perspective time buffer position line))
       )
   #+end_src
@@ -44,6 +42,8 @@
    - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
    - There is built-in support for buffer-local and window-local backtracking using commands: *gumshoe-[buf/win]-backtrack-back* and *gumshoe-[buf/win]-backtrack-forward*, such that all logs can be tracked independently.
    - I have also provided default support for [[https://github.com/nex3/perspective-el][perspective]]-local backtracking using commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
+   - Gumshoe activates the *global-gumshoe-backtracking-mode* during backtracking. Leave this mode with *keyboard-quit* (usually *C-g*).
+   - Like any minor mode, you may customize it’s local keymap (*global-gumshoe-backtracking-mode-map*).
    - By default, Gumshoe also marks "footprints", an overlay visually indicating entry points in the buffer. Toggle *gumshoe-show-footprints-p* to disable them.
 ** Perusing
    You can also visually browse the backlog in the minibuffer with the peruse commands:
@@ -52,6 +52,9 @@
    - Make your own peruse commands by providing a filter predicate to gumshoe--peruse.
 
 * Change log
+** 3.0
+   - I have turned backtracking into a minor mode. This much better isolates all the backtracking state, allowing users to customize any number of keybindings for that minor mode, rather than putting them in a global map. Users can also move around the buffer with footprints still active, which can be a useful feature. It also greatly simplifies and standardized much of the logic associated with backtracking.
+   - Fixed a number of nasty bugs associated with cleaning up dead bookmarks.
 ** 2.0
    - Gumshoe now uses 'gumshoe--entries' in the backlog instead of marks or bookmarks. I tried to make bookmarks work for me, but found the bookmark-alist far too ingrained into their interface and ended up finding it easier and more extensible to just make my own abstraction. It contains basically all the same metadata as a bookmark, but users/developers may add whatever metadata they want, by inheriting from it. That's how I added the perspective field.
    - peruse: this is my take on `dogears-list`.  It uses completing read to browse through the backlog. The display is customizable, allowing users to specify what and in what order gumshoe--entry fields are selected.
