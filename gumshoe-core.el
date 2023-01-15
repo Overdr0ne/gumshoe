@@ -415,8 +415,6 @@ When enabled, Gumshoe logs point movements when they exceed the
   (interactive)
   (global-gumshoe-backtracking-mode -1)
   (let ((backtracker (oref gumshoe-mode backtracker)))
-    (remove-hook 'post-command-hook
-                 (apply-partially #'gumshoe--post-track backtracker))
     (with-slots (footprints) backtracker
       (gumshoe--hide-footprints footprints))))
 
