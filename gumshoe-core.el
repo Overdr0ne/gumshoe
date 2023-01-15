@@ -328,12 +328,12 @@ INCREMENTER increments the index in SELF."
           (setf msg "I haven’t recorded any entries here yet...")
         (gumshoe--jump (nth index filtered)))
       (when msg (message msg)))))
-(defun gumshoe-backtrack-back ()
+(defun global-gumshoe-backtracking-mode-back ()
   "Backtrack back in the Gumshoe backlog."
   (interactive)
   (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+))
 
-(defun gumshoe-backtrack-forward ()
+(defun global-gumshoe-backtracking-mode-forward ()
   "Backtrack back in the Gumshoe backlog."
   (interactive)
   (gumshoe--backtrack (oref gumshoe-mode backtracker) #'-))
