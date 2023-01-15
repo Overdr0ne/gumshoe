@@ -53,7 +53,7 @@
   "Horizontal follow distances are divided by this factor."
   :type 'integer)
 (defcustom gumshoe-idle-time 60
-  "Gumshoe automatically logs your position if you’ve been idle at POINT for this amount of time."
+  "Log context after this idle time."
   :type 'integer)
 (defcustom gumshoe-show-footprints-p t
   "Display footprint overlays when backtracking?"
