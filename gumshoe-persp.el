@@ -73,5 +73,10 @@
 (setf gumshoe-entry-type 'gumshoe--persp-entry)
 (gumshoe--make-xface gumshoe-persp-backtrack gumshoe-peruse-in-persp gumshoe--in-current-persp-p)
 
+(make-obsolete 'gumshoe-persp-backtrack-back 'gumshoe-persp-backtrack "3.0")
+(make-obsolete 'gumshoe-persp-backtrack-forward 'gumshoe-persp-backtrack "3.0")
+(define-key global-gumshoe-backtracking-mode-map [remap gumshoe-persp-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
+(define-key global-gumshoe-backtracking-mode-map [remap gumshoe-persp-backtrack-back] 'global-gumshoe-backtracking-mode-back)
+
 (provide 'gumshoe-persp)
 ;;; gumshoe-persp.el ends here

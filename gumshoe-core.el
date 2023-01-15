@@ -343,21 +343,6 @@ INCREMENTER increments the index in SELF."
   (with-slots (backlog) self
     (gumshoe--log-if-necessary backlog t)))
 
-(defvar global-gumshoe-backtracking-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [remap keyboard-quit] 'gumshoe-backtrack-quit)
-    map)
-  "Transient keymap activated during global-gumshoe-backtracking-mode.")
-(define-minor-mode global-gumshoe-backtracking-mode
-  "A transient global mode to start Gumshoe backtracking."
-  :global t
-  :keymap global-gumshoe-backtracking-mode-map
-  (if global-gumshoe-backtracking-mode
-      (progn
-        (push `(global-gumshoe-backtracking-mode . ,global-gumshoe-backtracking-mode-map)
-              minor-mode-map-alist))
-    (setf minor-mode-map-alist (assoc-delete-all 'global-gumshoe-backtracking-mode minor-mode-map-alist))))
-
 ;;; Mode definition
 (defclass gumshoe--mode ()
   ((backtracker :initform nil
@@ -418,11 +403,34 @@ When enabled, Gumshoe logs point movements when they exceed the
     (with-slots (footprints) backtracker
       (gumshoe--hide-footprints footprints))))
 
+(defvar global-gumshoe-backtracking-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap keyboard-quit] 'gumshoe-backtrack-quit)
+    (define-key map [remap gumshoe-backtrack-back] 'global-gumshoe-backtracking-mode-back)
+    (define-key map [remap gumshoe-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
+    (define-key map [remap gumshoe-buf-backtrack-back] 'global-gumshoe-backtracking-mode-back)
+    (define-key map [remap gumshoe-buf-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
+    (define-key map [remap gumshoe-win-backtrack-back] 'global-gumshoe-backtracking-mode-back)
+    (define-key map [remap gumshoe-win-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
+    (define-key map [remap backward-paragraph] 'global-gumshoe-backtracking-mode-back)
+    (define-key map [remap forward-paragraph] 'global-gumshoe-backtracking-mode-forward)
+    map)
+  "Transient keymap activated during global-gumshoe-backtracking-mode.")
+(define-minor-mode global-gumshoe-backtracking-mode
+  "A transient global mode to start Gumshoe backtracking."
+  :global t
+  :keymap global-gumshoe-backtracking-mode-map
+  (if global-gumshoe-backtracking-mode
+      (progn
+        (push `(global-gumshoe-backtracking-mode . ,global-gumshoe-backtracking-mode-map)
+              minor-mode-map-alist))
+    (setf minor-mode-map-alist (assoc-delete-all 'global-gumshoe-backtracking-mode minor-mode-map-alist))))
+
 (defmacro gumshoe--make-xface (backtrack-name peruse-name filter-name)
   "Make a command interface for the given filter.
 
-BACKTRACK-BACK-NAME and BACKTRACK-FORWARD-NAME are names for the backtracking
-commands.
+BACKTRACK-NAME is the name of the backtracking command.
+
 A command will be generated for perusal called PERUSE-NAME.
 Results will be filtered using FILTER-NAME function."
   `(progn
@@ -435,10 +443,17 @@ Results will be filtered using FILTER-NAME function."
        (interactive)
        (global-gumshoe-backtracking-mode +1)
        (gumshoe--init-backtracking (oref gumshoe-mode backtracker) #',filter-name)
-       (gumshoe-backtrack-back))))
+       (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+))))
 (gumshoe--make-xface gumshoe-backtrack gumshoe-peruse-globally gumshoe--valid-p)
 (gumshoe--make-xface gumshoe-buf-backtrack gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
 (gumshoe--make-xface gumshoe-win-backtrack gumshoe-peruse-in-window gumshoe--in-current-window-p)
+
+(make-obsolete 'gumshoe-backtrack-back 'gumshoe-buf-backtrack "3.0")
+(make-obsolete 'gumshoe-backtrack-forward 'gumshoe-buf-backtrack "3.0")
+(make-obsolete 'gumshoe-buf-backtrack-back 'gumshoe-buf-backtrack "3.0")
+(make-obsolete 'gumshoe-buf-backtrack-forward 'gumshoe-buf-backtrack "3.0")
+(make-obsolete 'gumshoe-win-backtrack-back 'gumshoe-win-backtrack "3.0")
+(make-obsolete 'gumshoe-win-backtrack-forward 'gumshoe-win-backtrack "3.0")
 
 (provide 'gumshoe-core)
 ;;; gumshoe-core.el ends here
