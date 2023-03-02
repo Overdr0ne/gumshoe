@@ -91,6 +91,10 @@
        :weight bold))
   "Face for footprint overlays.")
 
+(defcustom gumshoe-auto-cancel-backtracking-p t
+  "Automatically cancel backtracking when non-backtracking commands are entered during backtracking."
+  :type 'boolean)
+
 (defcustom gumshoe-display-buffer-action '((display-buffer-reuse-window display-buffer-same-window))
   "`display-buffer-action’ to use when jumping through the backlog.
 
@@ -338,6 +342,22 @@ INCREMENTER increments the index in SELF."
   (interactive)
   (gumshoe--backtrack (oref gumshoe-mode backtracker) #'-))
 
+(defun gumshoe--backtracking-p ()
+  "Was the last command a backtracking command?"
+  (let ((backtracking-commands
+         '(global-gumshoe-backtracking-mode-back
+           global-gumshoe-backtracking-mode-forward
+           gumshoe-backtrack
+           gumshoe-buf-backtrack
+           gumshoe-win-backtrack)))
+    (cl-some (lambda (cmd) (equal this-command cmd))
+             backtracking-commands)))
+
+(defun gumshoe--auto-cancel-backtracking ()
+  "Automatically cancel last backtracking command if necessary."
+  (unless (gumshoe--backtracking-p)
+    (gumshoe-backtrack-quit)))
+
 (cl-defmethod gumshoe--timer-callback ((self gumshoe--backtracker))
   "Called by timer to log current position in SELF."
   (with-slots (backlog) self
@@ -422,9 +442,15 @@ When enabled, Gumshoe logs point movements when they exceed the
   :keymap global-gumshoe-backtracking-mode-map
   (if global-gumshoe-backtracking-mode
       (progn
+        (when gumshoe-auto-cancel-backtracking-p
+          (add-hook 'post-command-hook
+                    #'gumshoe--auto-cancel-backtracking))
         (push `(global-gumshoe-backtracking-mode . ,global-gumshoe-backtracking-mode-map)
               minor-mode-map-alist))
-    (setf minor-mode-map-alist (assoc-delete-all 'global-gumshoe-backtracking-mode minor-mode-map-alist))))
+    (setf minor-mode-map-alist (assoc-delete-all 'global-gumshoe-backtracking-mode minor-mode-map-alist))
+    (when gumshoe-auto-cancel-backtracking-p
+      (remove-hook 'post-command-hook
+                   #'gumshoe--auto-cancel-backtracking))))
 
 (defmacro gumshoe--make-xface (backtrack-name peruse-name filter-name)
   "Make a command interface for the given filter.

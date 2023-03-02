@@ -27,6 +27,8 @@
       (setf gumshoe-slot-schema '(time buffer position line))
       ;; personally, I use perspectives
       ;; (setf gumshoe-slot-schema '(perspective time buffer position line))
+      ;; disable auto-cancel of backtracking
+      (setf gumshoe-auto-cancel-backtracking-p nil)
       )
   #+end_src
 
@@ -45,6 +47,7 @@
    - Gumshoe activates the *global-gumshoe-backtracking-mode* during backtracking. Leave this mode with *keyboard-quit* (usually *C-g*).
    - Like any minor mode, you may customize it’s local keymap (*global-gumshoe-backtracking-mode-map*).
    - By default, Gumshoe also marks "footprints", an overlay visually indicating entry points in the buffer. Toggle *gumshoe-show-footprints-p* to disable them.
+   - By default, backtracking is disabled automatically when you type a non-backtracking command, but you can disable this behavior by setting *gumshoe-auto-cancel-backtracking-p* to nil, as shown above.
 ** Perusing
    You can also visually browse the backlog in the minibuffer with the peruse commands:
    *gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer*, *gumshoe-peruse-in-window* and *gumshoe--peruse-in-persp*.
