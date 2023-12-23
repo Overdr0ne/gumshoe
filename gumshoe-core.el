@@ -91,6 +91,30 @@
        :weight bold))
   "Face for footprint overlays.")
 
+(defcustom gumshoe-ignore-predicates '(minibufferp
+                                       gumshoe--ignore-mode-p)
+  "A list of predicates that will block gumshoe from logging when true."
+  :type '(repeat function))
+
+(defcustom gumshoe-ignored-major-modes
+  '(fundamental-mode
+    exwm-mode
+    helm-major-mode)
+  "Don't remember places in buffers in these major modes."
+  :type '(repeat symbol))
+
+(defcustom gumshoe-ignored-minor-modes
+  '(ctrlf-mode
+    isearch-mode
+    global-gumshoe-backtracking-mode)
+  "Don't remember places in buffers in these minor modes."
+  :type '(repeat symbol))
+
+(defun gumshoe--ignore-mode-p ()
+  "Return non-nil if current buffer's major mode is ignored."
+  (or (member major-mode gumshoe-ignored-major-modes)
+      (cl-some #'eval gumshoe-ignored-minor-modes)))
+
 (defcustom gumshoe-auto-cancel-backtracking-p t
   "Automatically cancel backtracking when non-backtracking commands are entered during backtracking."
   :type 'boolean)
@@ -244,7 +268,7 @@ Pre-filter results with ENTRY-FILTER."
   "Check current position and log in RING if significant.
 
 Log automatically if ALARMP is t."
-  (unless (or global-gumshoe-backtracking-mode (minibufferp))
+  (unless (cl-some #'funcall gumshoe-ignore-predicates)
     (gumshoe--clean-recent ring)
     (let ((new-entry (funcall gumshoe-entry-type)))
       (when (or (ring-empty-p ring)

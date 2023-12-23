@@ -38,6 +38,7 @@
   - Configure Gumshoe’s idle time by customizing the *gumshoe-idle-time* variable.
   - Configure the number of locations logged with the *gumshoe-log-len* variable.
   - Horizontal distance is scaled down by a factor of 4 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
+  - If you would like to disable gumshoe backtracking in some contexts, you may use *gumshoe-ignored-minor-modes* or *gumshoe-ignored-major-modes*, to ignore by mode, or more generically just add to *gumshoe-ignore-predicates* any condition where you would like gumshoe to stop tracking, like *minibufferp*, added by default.
 ** Backtracking
    Backtracking works a bit like isearch or Vim’s jump-list. Point will jump sequentially between points in the backlog.
    [[./backtrack-demo.gif]]
