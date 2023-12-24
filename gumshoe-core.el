@@ -113,7 +113,10 @@
 (defun gumshoe--ignore-mode-p ()
   "Return non-nil if current buffer's major mode is ignored."
   (or (member major-mode gumshoe-ignored-major-modes)
-      (cl-some #'eval gumshoe-ignored-minor-modes)))
+      (cl-some (lambda (mode)
+                 (and (boundp mode)
+                      (eval mode)))
+               gumshoe-ignored-minor-modes)))
 
 (defcustom gumshoe-auto-cancel-backtracking-p t
   "Automatically cancel backtracking when non-backtracking commands are entered during backtracking."
