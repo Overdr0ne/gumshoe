@@ -63,7 +63,8 @@
   "Type of entry Gumshoe should use in the backlog."
   :type 'symbol)
 
-(defcustom gumshoe-slot-schema '(time buffer position line)
+;; TEMP: Reducing to time and line for testing
+(defcustom gumshoe-slot-schema '(time line)
   "Entry slot order for perusing the backlog."
   :type 'list)
 
@@ -131,13 +132,9 @@ See `display-buffer' for more information"
 (defclass gumshoe--entry ()
   ((filename :initform (buffer-file-name)
              :documentation "The full path of this entry.")
-   (buffer :initform (current-buffer)
-           :documentation "The buffer object of this entry."
-           :printer buffer-file-name)
-   (position :initform (point)
-             :documentation "Buffer position of this entry.")
-   (line :initform (buffer-substring (line-beginning-position) (line-end-position))
-         :documentation "A formatted line containing the position of this entry.")
+   ;; TEMP: We might get all information from the marker.
+   (marker :initform (point-marker)
+             :documentation "The marker of this entry.")
    (time :initform (current-time-string)
          :documentation "Indicates the date and time of this entry.")
    (major-mode :initform (symbol-name major-mode)
@@ -152,16 +149,19 @@ See `display-buffer' for more information"
 
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   "Jump Point to buffer and position in SELF."
-  (with-slots (buffer position) self
-    (if gumshoe-prefer-same-window
-        (pop-to-buffer-same-window buffer)
-      (pop-to-buffer buffer))
-    (goto-char position)))
+  (with-slots (marker) self
+    (let ((buffer (marker-buffer marker))
+          (pos (marker-position marker)))
+      (if gumshoe-prefer-same-window
+          (pop-to-buffer-same-window buffer)
+        (pop-to-buffer buffer))
+      (goto-char pos))))
 
 (cl-defmethod gumshoe--dead-p ((self gumshoe--entry))
   "Check if SELF is dead."
-  (let* ((buffer (oref self buffer))
-         (pos (oref self position)))
+  (let* ((marker (oref self marker))
+         (pos (marker-position marker))
+         (buffer (marker-buffer marker)))
     (or (not (buffer-live-p buffer))
         (with-current-buffer buffer
           (>= pos (point-max))))))
@@ -169,7 +169,7 @@ See `display-buffer' for more information"
 ;;; filter predicates
 (cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
   "Check if ENTRY in the current perspective."
-  (equal (oref entry buffer) (current-buffer)))
+  (equal (marker-buffer (oref entry marker)) (current-buffer)))
 
 (cl-defmethod gumshoe--in-current-window-p ((entry gumshoe--entry))
   "Check if ENTRY in the current window."
@@ -249,7 +249,8 @@ Pre-filter results with ENTRY-FILTER."
     (current-column)))
 (cl-defmethod gumshoe--distance-to ((self gumshoe--entry))
   "Return the Euclidean distance between point and SELF."
-  (let* ((pos (oref self position))
+  (let* ((marker (oref self marker))
+         (pos (marker-position marker))
          (line (line-number-at-pos pos))
          (dline (abs (- line
                         (line-number-at-pos (point)))))
@@ -266,7 +267,7 @@ Pre-filter results with ENTRY-FILTER."
   "Return t if SELF and OTHER are approximately equal."
   (and
    (equal (oref self filename) (oref other filename))
-   (equal (oref self position) (oref other position))))
+   (equal (oref self marker) (oref other marker))))
 (defun gumshoe--log-if-necessary (ring &optional alarmp)
   "Check current position and log in RING if significant.
 
@@ -285,14 +286,16 @@ Log automatically if ALARMP is t."
 ;;; footprints
 (cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id face)
   "Add footprint overlay to SELF, labeled with ID, using FACE."
-  (with-slots (position buffer) self
-    (message (buffer-name buffer))
-    (let* ((label (int-to-string id))
-           (overlay (make-overlay position position buffer)))
-      (when (and buffer (> (buffer-size buffer) 1))
-        (put-text-property 0 (length label) 'face face label)
-        (overlay-put overlay 'after-string label))
-      overlay)))
+  (with-slots (marker) self
+    (let ((buffer (marker-buffer marker))
+          (position (marker-position marker)))
+      (message (buffer-name buffer))
+      (let* ((label (int-to-string id))
+             (overlay (make-overlay position position buffer)))
+        (when (and buffer (> (buffer-size buffer) 1))
+          (put-text-property 0 (length label) 'face face label)
+          (overlay-put overlay 'after-string label))
+        overlay))))
 (defun gumshoe--replace-footprint (footprints index face)
   "Add footprint overlay at footprint INDEX in FOOTPRINTS, using FACE."
   (let* ((label (int-to-string (- (length footprints) index)))
