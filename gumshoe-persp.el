@@ -58,12 +58,13 @@
 
 (cl-defmethod gumshoe--jump ((self gumshoe--persp-entry))
   "Jump Point to buffer and position in SELF."
-  (with-slots (buffer position perspective) self
+  (with-slots (buffer perspective footprint-overlay) self
     (persp-switch perspective)
     (if gumshoe-prefer-same-window
         (pop-to-buffer-same-window buffer)
       (pop-to-buffer buffer))
-    (goto-char position)))
+    (let ((position (overlay-start footprint-overlay)))
+      (goto-char position))))
 
 (defun global-gumshoe-persp-mode (&optional _)
   "Obsolete mode for persp local tracking."

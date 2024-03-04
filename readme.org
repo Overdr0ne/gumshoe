@@ -49,6 +49,7 @@
    - Like any minor mode, you may customize it’s local keymap (*global-gumshoe-backtracking-mode-map*).
    - By default, Gumshoe also marks "footprints", an overlay visually indicating entry points in the buffer. Toggle *gumshoe-show-footprints-p* to disable them.
    - By default, backtracking is disabled automatically when you type a non-backtracking command, but you can disable this behavior by setting *gumshoe-auto-cancel-backtracking-p* to nil, as shown above.
+   - By default, in order to keep the buffer from getting too cluttered with footprints, only the most recent entry is shown around a footprint within some *gumshoe-footprint-radius*. Set *gumshoe-cover-old-footprints-p* to nil to see all footprints.
 ** Perusing
    You can also visually browse the backlog in the minibuffer with the peruse commands:
    *gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer*, *gumshoe-peruse-in-window* and *gumshoe--peruse-in-persp*.

@@ -55,10 +55,18 @@
 (defcustom gumshoe-idle-time 60
   "Log context after this idle time."
   :type 'integer)
+(defcustom gumshoe-footprint-radius 1
+  "This is used to calculate what nearby footprints should be covered."
+  :type 'integer)
 (defcustom gumshoe-show-footprints-p t
   "Display footprint overlays when backtracking?"
   :type 'boolean)
+(defcustom gumshoe-cover-old-footprints-p t
+  "Initially cover any old footprints when backtracking.
 
+The old footprints are still there, but won’t be revealed until you reach them.
+Set to nil if you would like all footprints displayed at once."
+  :type 'boolean)
 (defcustom gumshoe-entry-type 'gumshoe--entry
   "Type of entry Gumshoe should use in the backlog."
   :type 'symbol)
@@ -110,6 +118,20 @@
   "Don't remember places in buffers in these minor modes."
   :type '(repeat symbol))
 
+(defun gumshoe--overlay-is-footprint-p (overlay)
+  "Return non-nil if OVERLAY is a gumshoe--entry."
+  (if-let ((entry (overlay-get overlay 'container)))
+      (object-of-class-p entry 'gumshoe--entry)
+    nil))
+
+(defun gumshoe--footprints-at (position)
+  (seq-filter 'gumshoe--overlay-is-footprint-p (overlays-in (- position gumshoe-footprint-radius) (+ position gumshoe-footprint-radius))))
+
+(defun gumshoe--cover-old-footprints-at (position)
+  (let* ((footprints (gumshoe--footprints-at position)))
+    (dolist (footprint-i footprints)
+      (overlay-put footprint-i 'after-string ""))))
+
 (defun gumshoe--ignore-mode-p ()
   "Return non-nil if current buffer's major mode is ignored."
   (or (member major-mode gumshoe-ignored-major-modes)
@@ -144,8 +166,9 @@ See `display-buffer' for more information"
                :documentation "Major mode of this entry.")
    (window :initform (get-buffer-window (current-buffer))
            :documentation "Window of this entry.")
-   (footprint-overlay :initform (make-overlay (point) (point))
-            :documentation "Footprint overlay.")   )
+   (footprint-overlay :initform nil
+                      :documentation "Footprint overlay.
+This must be set manually because overlays cannot be garbage collected.")   )
   "Entry class for Gumshoe’s backlog.")
 
 (cl-defmethod gumshoe--valid-p ((self gumshoe--entry))
@@ -154,16 +177,17 @@ See `display-buffer' for more information"
 
 (cl-defmethod gumshoe--jump ((self gumshoe--entry))
   "Jump Point to buffer and position in SELF."
-  (with-slots (buffer position) self
-    (if gumshoe-prefer-same-window
-        (pop-to-buffer-same-window buffer)
-      (pop-to-buffer buffer))
-    (goto-char position)))
+  (let ((position (overlay-start (oref self footprint-overlay))))
+    (with-slots (buffer) self
+     (if gumshoe-prefer-same-window
+         (pop-to-buffer-same-window buffer)
+       (pop-to-buffer buffer))
+     (goto-char position))))
 
 (cl-defmethod gumshoe--dead-p ((self gumshoe--entry))
   "Check if SELF is dead."
   (let* ((buffer (oref self buffer))
-         (pos (oref self position)))
+         (pos (overlay-start (oref self footprint-overlay))))
     (or (not (buffer-live-p buffer))
         (with-current-buffer buffer
           (>= pos (point-max))))))
@@ -192,6 +216,12 @@ See `display-buffer' for more information"
         :documentation "Stores info for the user during backtracking."))
   "Gumshoe’s backtracker keeps track of backtracking state.")
 
+(defun gumshoe--delete (ring index)
+  "Delete entry at INDEX from RING."
+  (let ((entry (ring-ref ring index)))
+    (delete-overlay (slot-value entry 'footprint-overlay)))
+  (ring-remove ring index))
+
 (cl-defmethod gumshoe--clean-recent (ring)
   "Cleanup recent dead entries from RING."
   (unless (ring-empty-p ring)
@@ -201,7 +231,7 @@ See `display-buffer' for more information"
                   (< i (ring-length ring)))
         (let ((entry (ring-ref ring i)))
           (if (gumshoe--dead-p entry)
-              (ring-remove ring i)
+              (gumshoe--delete ring i)
             (setq continuep nil)))))))
 
 (cl-defmethod gumshoe--clean (ring)
@@ -211,14 +241,14 @@ See `display-buffer' for more information"
       (while (< i (ring-length ring))
         (let ((entry (ring-ref ring i)))
           (if (gumshoe--dead-p entry)
-              (ring-remove ring i)
+              (gumshoe--delete ring i)
             (cl-incf i)))))))
 ;;; Peruse
 (defun gumshoe--format-record (rec format-string slot-spec)
   "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
   (let* ((slot-vals (mapcar #'(lambda (slot)
-				                (ignore-error invalid-slot-name
-				                  (slot-value rec slot))) slot-spec)))
+				                        (ignore-error invalid-slot-name
+				                          (slot-value rec slot))) slot-spec)))
     (apply #'format format-string slot-vals)))
 (defun gumshoe--format-records (rec-list format-string slot-spec)
   "Format records in REC-LIST according to FORMAT-STRING using SLOT-SPEC fields."
@@ -230,10 +260,10 @@ Pre-filter results with ENTRY-FILTER."
   (let* ((entries recs)
          (format-schema (string-join (mapcar #'symbol-name slot-spec) (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face)))
          (prompt (concat (propertize "(" 'face 'gumshoe--peruse-separator-face)
-			             format-schema
-			             (propertize ")" 'face 'gumshoe--peruse-separator-face) ": "))
+			                   format-schema
+			                   (propertize ")" 'face 'gumshoe--peruse-separator-face) ": "))
          (format-components (mapcar #'(lambda (_) "%s") slot-spec))
-	     (separator (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face))
+	       (separator (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face))
          (format-string (string-join format-components separator))
          (filtered-entries (if entry-filter
                                (seq-filter entry-filter entries)
@@ -251,7 +281,7 @@ Pre-filter results with ENTRY-FILTER."
     (current-column)))
 (cl-defmethod gumshoe--distance-to ((self gumshoe--entry))
   "Return the Euclidean distance between point and SELF."
-  (let* ((pos (oref self position))
+  (let* ((pos (overlay-start (oref self footprint-overlay)))
          (line (line-number-at-pos pos))
          (dline (abs (- line
                         (line-number-at-pos (point)))))
@@ -268,7 +298,14 @@ Pre-filter results with ENTRY-FILTER."
   "Return t if SELF and OTHER are approximately equal."
   (and
    (equal (oref self filename) (oref other filename))
-   (equal (oref self position) (oref other position))))
+   (let ((pos (overlay-start (oref self footprint-overlay))))
+     (equal pos pos))))
+(cl-defmethod gumshoe--add-entry (ring (entry gumshoe--entry))
+  "Add entry to the RING."
+  (ring-insert ring entry)
+  (let ((overlay (make-overlay (point) (point))))
+    (overlay-put overlay 'container entry)
+    (oset entry footprint-overlay overlay)))
 (defun gumshoe--log-if-necessary (ring &optional alarmp)
   "Check current position and log in RING if significant.
 
@@ -282,12 +319,12 @@ Log automatically if ALARMP is t."
                        (or alarmp
                            (not (gumshoe--in-current-buffer-p latest-entry))
                            (gumshoe--end-of-leash-p latest-entry)))))
-        (ring-insert ring new-entry)))))
+        (gumshoe--add-entry ring new-entry)))))
 
 ;;; footprints
 (cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id face)
   "Add footprint overlay to SELF, labeled with ID, using FACE."
-  (with-slots (position buffer footprint-overlay) self
+  (with-slots (buffer footprint-overlay) self
     (message (buffer-name buffer))
     (let* ((label (int-to-string id)))
       (when (and buffer (> (buffer-size buffer) 1))
@@ -297,7 +334,9 @@ Log automatically if ALARMP is t."
   "Add footprint overlay at footprint INDEX in FOOTPRINTS, using FACE."
   (let* ((label (int-to-string (- (length entries) index)))
          (entry (nth index entries))
-         (footprint-overlay (slot-value entry 'footprint-overlay)))
+         (footprint-overlay (slot-value entry 'footprint-overlay))
+         (position (overlay-start footprint-overlay)))
+    (when gumshoe-cover-old-footprints-p (gumshoe--cover-old-footprints-at position))
     (put-text-property 0 (length label) 'face face label)
     (overlay-put footprint-overlay 'after-string label)))
 (defun gumshoe--hl-current-footprint (entries prev-index cur-index)
@@ -309,13 +348,15 @@ Log automatically if ALARMP is t."
   "Display footprints for all ENTRIES."
   (let ((i 1))
     (dolist (entry (reverse entries))
-      (gumshoe--mark-footprint entry i 'gumshoe--footprint-face)
-      (cl-incf i))))
+      (let ((position (overlay-start (oref entry footprint-overlay))))
+        (when gumshoe-cover-old-footprints-p (gumshoe--cover-old-footprints-at position))
+        (gumshoe--mark-footprint entry i 'gumshoe--footprint-face)
+        (cl-incf i)))))
 (defun gumshoe--hide-footprints (entries)
   "Hide footprints in FOOTPRINTS."
   (dolist (entry entries)
     (with-slots (footprint-overlay) entry
-        (overlay-put footprint-overlay 'after-string ""))))
+      (overlay-put footprint-overlay 'after-string ""))))
 
 ;;; backtracking
 (cl-defmethod gumshoe--increment-index ((self gumshoe--backtracker) incrementer)
@@ -332,8 +373,9 @@ In particular, notify users if index would go outside log boundaries."
       (setf msg "This is the latest entry...")
       (setf index 0))
      (t
-      (setf msg (format "Gumshoe: entry #%i"
-                        (- (length filtered) index)))))))
+      (setf msg (format "Gumshoe: entry #%i: %i"
+                        (- (length filtered) index)
+                        (length filtered)))))))
 (cl-defmethod gumshoe--init-backtracking ((self gumshoe--backtracker) _filter)
   "FILTER SELF, and reset slots to start backtracking."
   (with-slots (backlog filter filtered msg index) self
@@ -355,7 +397,7 @@ INCREMENTER increments the index in SELF."
           (entries (ring-elements backlog)))
       (gumshoe--increment-index self incrementer)
       (when gumshoe-show-footprints-p
-        (gumshoe--hl-current-footprint entries prev-index index))
+        (gumshoe--hl-current-footprint filtered prev-index index))
       (if (not filtered)
           (setf msg "I haven’t recorded any entries here yet...")
         (gumshoe--jump (nth index filtered)))
