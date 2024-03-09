@@ -61,6 +61,12 @@
 (defcustom gumshoe-show-footprints-p t
   "Display footprint overlays when backtracking?"
   :type 'boolean)
+(defcustom gumshoe-footprint-strategy 'delete-overlapping
+  "Strategy for creating a footprint."
+  :type '(radio (const :tag "Delete overlapping footprints" delete-overlapping)
+                (const :tag "Cover overlapping footprints" cover-old)
+                (const :tag "Show all footprints" nil)))
+
 (defcustom gumshoe-cover-old-footprints-p t
   "Initially cover any old footprints when backtracking.
 
@@ -126,6 +132,16 @@ Set to nil if you would like all footprints displayed at once."
 
 (defun gumshoe--footprints-at (position)
   (seq-filter 'gumshoe--overlay-is-footprint-p (overlays-in (- position gumshoe-footprint-radius) (+ position gumshoe-footprint-radius))))
+
+(defun gumshoe--remove-footprint-entry (ring footprint)
+  (ring-remove ring
+               (ring-member ring
+                            (overlay-get footprint 'container)))
+  (delete-overlay footprint))
+
+(defun gumshoe--remove-footprint-entries-at (position ring)
+  (mapc (apply-partially #'gumshoe--remove-footprint-entry ring)
+        (gumshoe--footprints-at position)))
 
 (defun gumshoe--cover-old-footprints-at (position)
   (let* ((footprints (gumshoe--footprints-at position)))
@@ -305,6 +321,8 @@ Pre-filter results with ENTRY-FILTER."
 (cl-defmethod gumshoe--add-entry (ring (entry gumshoe--entry))
   "Add entry to the RING."
   (ring-insert ring entry)
+  (when (eq gumshoe-footprint-strategy 'delete-overlapping)
+    (gumshoe--remove-footprint-entries-at (point) ring))
   (let ((overlay (make-overlay (point) (point))))
     (overlay-put overlay 'container entry)
     (oset entry footprint-overlay overlay)))
@@ -351,7 +369,8 @@ Log automatically if ALARMP is t."
   (let ((i 1))
     (dolist (entry (reverse entries))
       (let ((position (overlay-start (oref entry footprint-overlay))))
-        (when gumshoe-cover-old-footprints-p (gumshoe--cover-old-footprints-at position))
+        (when (eq gumshoe-footprint-strategy 'cover-old)
+          (gumshoe--cover-old-footprints-at position))
         (gumshoe--mark-footprint entry i 'gumshoe--footprint-face)
         (cl-incf i)))))
 (defun gumshoe--hide-footprints (entries)
