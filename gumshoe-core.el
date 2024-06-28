@@ -61,7 +61,7 @@
 (defcustom gumshoe-show-footprints-p t
   "Display footprint overlays when backtracking?"
   :type 'boolean)
-(defcustom gumshoe-footprint-strategy 'delete-overlapping
+(defcustom gumshoe-footprint-strategy 'cover-old
   "Strategy for creating a footprint."
   :type '(radio (const :tag "Delete overlapping footprints" delete-overlapping)
                 (const :tag "Cover overlapping footprints" cover-old)
