@@ -202,6 +202,7 @@ This must be set manually because overlays cannot be garbage collected.")   )
 
 (cl-defmethod gumshoe--dead-p ((self gumshoe--entry))
   "Check if SELF is dead."
+  (not (oref self footprint-overlay))
   (let* ((buffer (oref self buffer))
          (pos (overlay-start (oref self footprint-overlay))))
     (or (not (buffer-live-p buffer))
