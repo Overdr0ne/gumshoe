@@ -298,8 +298,10 @@ Pre-filter results with ENTRY-FILTER."
   "Return t if SELF and OTHER are approximately equal."
   (and
    (equal (oref self filename) (oref other filename))
-   (let ((pos (overlay-start (oref self footprint-overlay))))
-     (equal pos pos))))
+   (oref self footprint-overlay)
+   (oref other footprint-overlay)
+   (equal (overlay-start (oref self footprint-overlay))
+          (overlay-start (oref other footprint-overlay)))))
 (cl-defmethod gumshoe--add-entry (ring (entry gumshoe--entry))
   "Add entry to the RING."
   (ring-insert ring entry)
