@@ -36,7 +36,6 @@
 (require 'eieio)
 (require 'cl-lib)
 (require 'subr-x)
-(require 'ring)
 
 (defgroup gumshoe nil
   "The gumshoe movement tracker."
@@ -133,16 +132,6 @@ Set to nil if you would like all footprints displayed at once."
 (defun gumshoe--footprints-at (position)
   (seq-filter 'gumshoe--overlay-is-footprint-p (overlays-in (- position gumshoe-footprint-radius) (+ position gumshoe-footprint-radius))))
 
-(defun gumshoe--remove-footprint-entry (ring footprint)
-  (ring-remove ring
-               (ring-member ring
-                            (overlay-get footprint 'container)))
-  (delete-overlay footprint))
-
-(defun gumshoe--remove-footprint-entries-at (position ring)
-  (mapc (apply-partially #'gumshoe--remove-footprint-entry ring)
-        (gumshoe--footprints-at position)))
-
 (defun gumshoe--cover-old-footprints-at (position)
   (let* ((footprints (gumshoe--footprints-at position)))
     (dolist (footprint-i footprints)
@@ -195,10 +184,10 @@ This must be set manually because overlays cannot be garbage collected.")   )
   "Jump Point to buffer and position in SELF."
   (let ((position (overlay-start (oref self footprint-overlay))))
     (with-slots (buffer) self
-     (if gumshoe-prefer-same-window
-         (pop-to-buffer-same-window buffer)
-       (pop-to-buffer buffer))
-     (goto-char position))))
+      (if gumshoe-prefer-same-window
+          (pop-to-buffer-same-window buffer)
+        (pop-to-buffer buffer))
+      (goto-char position))))
 
 (cl-defmethod gumshoe--dead-p ((self gumshoe--entry))
   "Check if SELF is dead."
@@ -219,48 +208,6 @@ This must be set manually because overlays cannot be garbage collected.")   )
   "Check if ENTRY in the current window."
   (equal (oref entry window) (get-buffer-window (current-buffer))))
 
-(defclass gumshoe--backtracker ()
-  ((backlog :initform (make-ring gumshoe-log-len)
-            :documentation "Ring-buffer to remember the previous editing position.")
-   (filter :initform #'gumshoe--valid-p
-           :documentation "Filter used when backtracking.")
-   (filtered :initform nil
-             :documentation "The filtered log list used when backtracking.")
-   (footprints :initform nil
-               :documentation "An overlay indicating previous locations.")
-   (index :initform 0
-          :documentation "Current index backwards into the log when backtracking.")
-   (msg :initform ""
-        :documentation "Stores info for the user during backtracking."))
-  "Gumshoe’s backtracker keeps track of backtracking state.")
-
-(defun gumshoe--delete (ring index)
-  "Delete entry at INDEX from RING."
-  (let ((entry (ring-ref ring index)))
-    (delete-overlay (slot-value entry 'footprint-overlay)))
-  (ring-remove ring index))
-
-(cl-defmethod gumshoe--clean-recent (ring)
-  "Cleanup recent dead entries from RING."
-  (unless (ring-empty-p ring)
-    (let ((i 0)
-          (continuep t))
-      (while (and continuep
-                  (< i (ring-length ring)))
-        (let ((entry (ring-ref ring i)))
-          (if (gumshoe--dead-p entry)
-              (gumshoe--delete ring i)
-            (setq continuep nil)))))))
-
-(cl-defmethod gumshoe--clean (ring)
-  "Cleanup dead entries from RING."
-  (unless (ring-empty-p ring)
-    (let ((i 0))
-      (while (< i (ring-length ring))
-        (let ((entry (ring-ref ring i)))
-          (if (gumshoe--dead-p entry)
-              (gumshoe--delete ring i)
-            (cl-incf i)))))))
 ;;; Peruse
 (defun gumshoe--format-record (rec format-string slot-spec)
   "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
@@ -320,28 +267,6 @@ Pre-filter results with ENTRY-FILTER."
    (oref other footprint-overlay)
    (equal (overlay-start (oref self footprint-overlay))
           (overlay-start (oref other footprint-overlay)))))
-(cl-defmethod gumshoe--add-entry (ring (entry gumshoe--entry))
-  "Add entry to the RING."
-  (ring-insert ring entry)
-  (when (eq gumshoe-footprint-strategy 'delete-overlapping)
-    (gumshoe--remove-footprint-entries-at (point) ring))
-  (let ((overlay (make-overlay (point) (point))))
-    (overlay-put overlay 'container entry)
-    (oset entry footprint-overlay overlay)))
-(defun gumshoe--log-if-necessary (ring &optional alarmp)
-  "Check current position and log in RING if significant.
-
-Log automatically if ALARMP is t."
-  (unless (cl-some #'funcall gumshoe-ignore-predicates)
-    (gumshoe--clean-recent ring)
-    (let ((new-entry (funcall gumshoe-entry-type)))
-      (when (or (ring-empty-p ring)
-                (let ((latest-entry (ring-ref ring 0)))
-                  (and (not (gumshoe--equal new-entry latest-entry))
-                       (or alarmp
-                           (not (gumshoe--in-current-buffer-p latest-entry))
-                           (gumshoe--end-of-leash-p latest-entry)))))
-        (gumshoe--add-entry ring new-entry)))))
 
 ;;; footprints
 (cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id face)
@@ -382,6 +307,24 @@ Log automatically if ALARMP is t."
       (overlay-put footprint-overlay 'after-string ""))))
 
 ;;; backtracking
+(require 'gumshoe-ring)
+
+(defclass gumshoe--backtracker ()
+  ((backlog :initform nil
+            :initarg :backlog
+            :documentation "Ring-buffer to remember the previous editing position.")
+   (filter :initform #'gumshoe--valid-p
+           :documentation "Filter used when backtracking.")
+   (filtered :initform nil
+             :documentation "The filtered log list used when backtracking.")
+   (footprints :initform nil
+               :documentation "An overlay indicating previous locations.")
+   (index :initform 0
+          :documentation "Current index backwards into the log when backtracking.")
+   (msg :initform ""
+        :documentation "Stores info for the user during backtracking."))
+  "Gumshoe’s backtracker keeps track of backtracking state.")
+
 (cl-defmethod gumshoe--increment-index ((self gumshoe--backtracker) incrementer)
   "Increment index in SELF with INCREMENTER function.
 
@@ -404,9 +347,11 @@ In particular, notify users if index would go outside log boundaries."
   (with-slots (backlog filter filtered msg index) self
     (setf filter _filter)
     (gumshoe--clean backlog)
-    (setf filtered (if filter
-                       (seq-filter filter (ring-elements backlog))
-                     (ring-elements backlog)))
+    (message "timeline %s" (gumshoe--construct-timeline backlog))
+    (setf filtered
+          (if filter
+              (seq-filter filter (gumshoe--construct-timeline backlog))
+            (gumshoe--construct-timeline backlog)))
     (when gumshoe-show-footprints-p
       (gumshoe--mark-footprints filtered))
     (setf index -1)))
@@ -415,9 +360,8 @@ In particular, notify users if index would go outside log boundaries."
 
 Only including results satisfying FILTER.
 INCREMENTER increments the index in SELF."
-  (with-slots (index filter filtered msg backlog) self
-    (let ((prev-index index)
-          (entries (ring-elements backlog)))
+  (with-slots (index filter filtered msg backlog current) self
+    (let ((prev-index index))
       (gumshoe--increment-index self incrementer)
       (when gumshoe-show-footprints-p
         (gumshoe--hl-current-footprint filtered prev-index index))
@@ -425,6 +369,7 @@ INCREMENTER increments the index in SELF."
           (setf msg "I haven’t recorded any entries here yet...")
         (gumshoe--jump (nth index filtered)))
       (when msg (message msg)))))
+
 (defun global-gumshoe-backtracking-mode-back ()
   "Backtrack back in the Gumshoe backlog."
   (interactive)
@@ -466,7 +411,7 @@ INCREMENTER increments the index in SELF."
 (cl-defmethod gumshoe--init ((self gumshoe--mode))
   "Initialize SELF, setting hooks and timers."
   (with-slots (backtracker timer) self
-    (setf backtracker (gumshoe--backtracker))
+    (setf backtracker (gumshoe--backtracker :backlog (gumshoe--backlog-init gumshoe-log-len)))
     (add-hook 'post-command-hook
               (apply-partially #'gumshoe--log-if-necessary (oref backtracker backlog)))
     (setf timer (run-with-idle-timer gumshoe-idle-time t
@@ -514,7 +459,7 @@ When enabled, Gumshoe logs point movements when they exceed the
   (global-gumshoe-backtracking-mode -1)
   (let* ((backtracker (oref gumshoe-mode backtracker))
          (backlog (oref backtracker backlog))
-         (entries (ring-elements backlog)))
+         (entries (gumshoe--construct-timeline backlog)))
     (gumshoe--hide-footprints entries)))
 
 (defvar global-gumshoe-backtracking-mode-map
@@ -556,7 +501,7 @@ Results will be filtered using FILTER-NAME function."
   `(progn
      (defun ,peruse-name ()
        (interactive)
-       (gumshoe--peruse (ring-elements (oref (oref gumshoe-mode backtracker) backlog))
+       (gumshoe--peruse (gumshoe--get-timeline (oref (oref gumshoe-mode backtracker) backlog))
                         gumshoe-slot-schema
                         #',filter-name))
      (defun ,backtrack-name ()
