@@ -127,5 +127,19 @@
       (dolist (child (oref iter children)) (setf stk (cons child stk)))
       (cl-incf i))
     preorder))
+
+(cl-defmethod etree--path ((self etree--tree))
+  (let ((stk (list (oref self root)))
+        path
+        (continuep t)
+        (i 0)
+        (iter (oref self current)))
+    (while (and continuep
+                iter)
+      (push iter path)
+      (setf iter (oref iter parent))
+      (when (eq iter (oref self root)) (setf continuep nil)))
+    path))
+
 (provide 'etree)
 ;;; etree.el ends here

@@ -10,7 +10,7 @@
                 timeline)
       (setf iter (car timeline))
       (if (gumshoe--dead-p iter)
-          (setf iter (gumshoe--remove self iter))
+          (setf iter (etree--remove self iter))
         (setq continuep nil))
       (setf timeline (cdr timeline))))
   self)
@@ -23,7 +23,7 @@
       (while (and continuep
                   iter)
         (if (gumshoe--dead-p iter)
-            (gumshoe--remove self iter)
+            (etree--remove self iter)
           (setq continuep nil))
         (setq iter (oref self current)))
       )))
@@ -36,13 +36,20 @@
   (unless (eq (oref self current) (oref self root))
     (gumshoe--clean-recent self)
     (gumshoe--clean-root self)
-    (mapc #'gumshoe--delete
-          (gumshoe--collect self 'gumshoe--dead-p)))
+    (mapc #'etree--delete
+          (etree--collect self 'gumshoe--dead-p)))
   )
 
 (cl-defmethod gumshoe--remove-footprint-entry ((self etree--tree) footprint)
-  (gumshoe--remove self (overlay-get footprint 'container))
+  (etree--remove self (overlay-get footprint 'container))
   (delete-overlay footprint))
+
+(defun gumshoe--overlay-is-footprint-p (overlay)
+  "Return non-nil if OVERLAY is a gumshoe--entry."
+  (let ((container (overlay-get overlay 'container)))
+    (if container
+        (object-of-class-p container 'etree--node)
+      nil)))
 
 (cl-defmethod gumshoe--remove-footprint-entries-at ((self etree--tree) position)
   (mapc (apply-partially #'gumshoe--remove-footprint-entry self)
@@ -60,29 +67,22 @@
     (equal (oref entry window) (get-buffer-window (current-buffer)))))
 
 (cl-defmethod gumshoe--construct-timeline-nodes ((self etree--tree))
-  (let ((stk (list (oref self root)))
-        timeline
-        (continuep t)
-        (i 0)
-        (iter (oref self current)))
-    (while (and continuep
-                iter)
-      (push iter timeline)
-      (setf iter (oref iter parent))
-      (when (eq iter (oref self root)) (setf continuep nil)))
-    timeline))
+  (etree--path self))
 (cl-defmethod gumshoe--construct-timeline ((self etree--tree))
   (mapcar (lambda (node) (oref node entry))
-          (gumshoe--construct-timeline-nodes self)))
+          (etree--path self)))
 
 (cl-defmethod gumshoe--add-entry ((self etree--tree) (entry gumshoe--entry))
   "Add ENTRY to SELF"
-  (gumshoe--insert self (etree--node :entry entry))
-  (when (eq gumshoe-footprint-strategy 'delete-overlapping)
-    (gumshoe--remove-footprint-entries-at self (point)))
-  (let ((overlay (make-overlay (point) (point))))
-    (overlay-put overlay 'container entry)
-    (oset entry footprint-overlay overlay)))
+  (let* ((new-node (etree--node :entry entry))
+         (tree (etree--insert self new-node)))
+    (cl-assert (and new-node (object-of-class-p new-node 'etree--node)))
+    (when (eq gumshoe-footprint-strategy 'delete-overlapping)
+       (gumshoe--remove-footprint-entries-at self (point)))
+     (let ((overlay (make-overlay (point) (point))))
+       (overlay-put overlay 'container new-node)
+       (oset entry footprint-overlay overlay))
+    ))
 (cl-defmethod gumshoe--log-if-necessary ((self etree--tree) &optional alarmp)
   "Check current position and log in RING if significant.
 

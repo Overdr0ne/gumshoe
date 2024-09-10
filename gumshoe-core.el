@@ -125,9 +125,10 @@ Set to nil if you would like all footprints displayed at once."
 
 (defun gumshoe--overlay-is-footprint-p (overlay)
   "Return non-nil if OVERLAY is a gumshoe--entry."
-  (if-let ((entry (overlay-get overlay 'container)))
-      (object-of-class-p entry 'gumshoe--entry)
-    nil))
+  (let ((entry (overlay-get overlay 'container)))
+      (if entry
+          (object-of-class-p entry 'gumshoe--entry)
+        nil)))
 
 (defun gumshoe--footprints-at (position)
   (seq-filter 'gumshoe--overlay-is-footprint-p (overlays-in (- position gumshoe-footprint-radius) (+ position gumshoe-footprint-radius))))
@@ -154,6 +155,11 @@ Set to nil if you would like all footprints displayed at once."
 
 See `display-buffer' for more information"
   :type 'list)
+
+(defcustom gumshoe-backlog-type 'ring
+  "The data structure holding the backlog."
+  :type '(radio (const :tag "The backlog is organized into a ring buffer." ring)
+                (const :tag "The backlog is organized into a tree of timelines." tree)))
 
 (defclass gumshoe--entry ()
   ((filename :initform (buffer-file-name)
@@ -307,7 +313,9 @@ Pre-filter results with ENTRY-FILTER."
       (overlay-put footprint-overlay 'after-string ""))))
 
 ;;; backtracking
-(require 'gumshoe-ring)
+(if (eq gumshoe-backlog-type 'tree)
+    (require 'gumshoe-tree)
+ (require 'gumshoe-ring))
 
 (defclass gumshoe--backtracker ()
   ((backlog :initform nil
