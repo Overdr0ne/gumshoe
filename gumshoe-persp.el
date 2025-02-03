@@ -34,45 +34,20 @@
 
 (require 'gumshoe-core)
 (require 'perspective)
+(require 'context)
 
 (defcustom gumshoe-persp-auto-config t
-  "Automatically set the backlog type to `gumshoe--persp-entry’ if t."
+  "Automatically set the backlog type to `context-persp’ if t."
   :group 'gumshoe
   :type 'boolean)
-
-(defclass gumshoe--persp-entry (gumshoe--entry)
-  ((perspective :initform (persp-current-name)
-                :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
-  "Entry class for Gumshoe’s backlog, with perspectives.")
-
-(cl-defmethod gumshoe--in-current-persp-p ((entry gumshoe--persp-entry))
-  "Check if ENTRY in the current perspective."
-  (equal (oref entry perspective) (persp-current-name)))
-
-(cl-defmethod gumshoe--equal ((self gumshoe--persp-entry) (other gumshoe--persp-entry))
-  "Check if SELF and OTHER are approximately equal."
-  (and
-   (equal (oref self perspective) (oref other perspective))
-   (equal (oref self filename) (oref other filename))
-   (equal (oref self position) (oref other position))))
-
-(cl-defmethod gumshoe--jump ((self gumshoe--persp-entry))
-  "Jump Point to buffer and position in SELF."
-  (with-slots (buffer perspective footprint-overlay) self
-    (persp-switch perspective)
-    (if gumshoe-prefer-same-window
-        (pop-to-buffer-same-window buffer)
-      (pop-to-buffer buffer))
-    (let ((position (overlay-start footprint-overlay)))
-      (goto-char position))))
 
 (defun global-gumshoe-persp-mode (&optional _)
   "Obsolete mode for persp local tracking."
   (interactive) (global-gumshoe-mode +1))
 (make-obsolete 'global-gumshoe-persp-mode 'global-gumshoe-mode "2.0")
 
-(setf gumshoe-entry-type 'gumshoe--persp-entry)
-(gumshoe--make-xface gumshoe-persp-backtrack gumshoe-peruse-in-persp gumshoe--in-current-persp-p)
+(setf gumshoe-entry-type 'context-persp)
+(gumshoe--make-xface gumshoe-persp-backtrack gumshoe-peruse-in-persp context--in-current-persp-p)
 
 (make-obsolete 'gumshoe-persp-backtrack-back 'gumshoe-persp-backtrack "3.0")
 (make-obsolete 'gumshoe-persp-backtrack-forward 'gumshoe-persp-backtrack "3.0")

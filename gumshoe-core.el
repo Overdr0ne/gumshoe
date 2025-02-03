@@ -36,6 +36,7 @@
 (require 'eieio)
 (require 'cl-lib)
 (require 'subr-x)
+(require 'context)
 
 (defgroup gumshoe nil
   "The gumshoe movement tracker."
@@ -47,9 +48,6 @@
   :type 'integer)
 (defcustom gumshoe-follow-distance 15
   "Gumshoe logs movements beyond this Euclidean distance from previous entry."
-  :type 'integer)
-(defcustom gumshoe-horizontal-scale 4
-  "Horizontal follow distances are divided by this factor."
   :type 'integer)
 (defcustom gumshoe-idle-time 60
   "Log context after this idle time."
@@ -72,7 +70,7 @@
 The old footprints are still there, but won’t be revealed until you reach them.
 Set to nil if you would like all footprints displayed at once."
   :type 'boolean)
-(defcustom gumshoe-entry-type 'gumshoe--entry
+(defcustom gumshoe-entry-type 'context
   "Type of entry Gumshoe should use in the backlog."
   :type 'symbol)
 
@@ -124,11 +122,11 @@ Set to nil if you would like all footprints displayed at once."
   :type '(repeat symbol))
 
 (defun gumshoe--overlay-is-footprint-p (overlay)
-  "Return non-nil if OVERLAY is a gumshoe--entry."
+  "Return non-nil if OVERLAY is a context."
   (let ((entry (overlay-get overlay 'container)))
-      (if entry
-          (object-of-class-p entry 'gumshoe--entry)
-        nil)))
+    (if entry
+        (object-of-class-p entry 'context)
+      nil)))
 
 (defun gumshoe--footprints-at (position)
   (seq-filter 'gumshoe--overlay-is-footprint-p (overlays-in (- position gumshoe-footprint-radius) (+ position gumshoe-footprint-radius))))
@@ -161,59 +159,6 @@ See `display-buffer' for more information"
   :type '(radio (const :tag "The backlog is organized into a ring buffer." ring)
                 (const :tag "The backlog is organized into a tree of timelines." tree)))
 
-(defclass gumshoe--entry ()
-  ((filename :initform (buffer-file-name)
-             :documentation "The full path of this entry.")
-   (buffer :initform (current-buffer)
-           :documentation "The buffer object of this entry."
-           :printer buffer-file-name)
-   (position :initform (point)
-             :documentation "Buffer position of this entry.")
-   (line :initform (buffer-substring (line-beginning-position) (line-end-position))
-         :documentation "A formatted line containing the position of this entry.")
-   (time :initform (current-time-string)
-         :documentation "Indicates the date and time of this entry.")
-   (major-mode :initform (symbol-name major-mode)
-               :documentation "Major mode of this entry.")
-   (window :initform (get-buffer-window (current-buffer))
-           :documentation "Window of this entry.")
-   (footprint-overlay :initform nil
-                      :documentation "Footprint overlay.
-This must be set manually because overlays cannot be garbage collected.")   )
-  "Entry class for Gumshoe’s backlog.")
-
-(cl-defmethod gumshoe--valid-p ((self gumshoe--entry))
-  "Return t if SELF is valid."
-  (not (cl-check-type self gumshoe--entry)))
-
-(cl-defmethod gumshoe--jump ((self gumshoe--entry))
-  "Jump Point to buffer and position in SELF."
-  (let ((position (overlay-start (oref self footprint-overlay))))
-    (with-slots (buffer) self
-      (if gumshoe-prefer-same-window
-          (pop-to-buffer-same-window buffer)
-        (pop-to-buffer buffer))
-      (goto-char position))))
-
-(cl-defmethod gumshoe--dead-p ((self gumshoe--entry))
-  "Check if SELF is dead."
-  (if (oref self footprint-overlay)
-      (let* ((buffer (oref self buffer))
-             (pos (overlay-start (oref self footprint-overlay))))
-        (or (not (buffer-live-p buffer))
-            (with-current-buffer buffer
-              (>= pos (point-max)))))
-    t))
-
-;;; filter predicates
-(cl-defmethod gumshoe--in-current-buffer-p ((entry gumshoe--entry))
-  "Check if ENTRY in the current perspective."
-  (equal (oref entry buffer) (current-buffer)))
-
-(cl-defmethod gumshoe--in-current-window-p ((entry gumshoe--entry))
-  "Check if ENTRY in the current window."
-  (equal (oref entry window) (get-buffer-window (current-buffer))))
-
 ;;; Peruse
 (defun gumshoe--format-record (rec format-string slot-spec)
   "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
@@ -242,40 +187,16 @@ Pre-filter results with ENTRY-FILTER."
          (entry-strings (gumshoe--format-records filtered-entries format-string slot-spec))
          (candidates (cl-mapcar #'list entry-strings filtered-entries))
          (candidate (completing-read prompt candidates)))
-    (gumshoe--jump (cadr (assoc candidate candidates)))))
+    (context--jump (cadr (assoc candidate candidates)))))
 
 ;; tracking
-(defun gumshoe--column-at (pos)
-  "Return column number at POS."
-  (save-excursion
-    (goto-char pos)
-    (current-column)))
-(cl-defmethod gumshoe--distance-to ((self gumshoe--entry))
-  "Return the Euclidean distance between point and SELF."
-  (let* ((pos (overlay-start (oref self footprint-overlay)))
-         (line (line-number-at-pos pos))
-         (dline (abs (- line
-                        (line-number-at-pos (point)))))
-         (column (gumshoe--column-at pos))
-         (dcolumn (abs (- column
-                          (current-column))))
-         (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
-    (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))))
-(cl-defmethod gumshoe--end-of-leash-p ((last-entry gumshoe--entry))
+(cl-defmethod gumshoe--end-of-leash-p ((last-entry context))
   "Check if LAST-ENTRY is outside gumshoe’s boundary."
-  (> (gumshoe--distance-to last-entry)
+  (> (context--distance-to last-entry)
      gumshoe-follow-distance))
-(cl-defmethod gumshoe--equal ((self gumshoe--entry) (other gumshoe--entry))
-  "Return t if SELF and OTHER are approximately equal."
-  (and
-   (equal (oref self filename) (oref other filename))
-   (oref self footprint-overlay)
-   (oref other footprint-overlay)
-   (equal (overlay-start (oref self footprint-overlay))
-          (overlay-start (oref other footprint-overlay)))))
 
 ;;; footprints
-(cl-defmethod gumshoe--mark-footprint ((self gumshoe--entry) id face)
+(cl-defmethod gumshoe--mark-footprint ((self context) id face)
   "Add footprint overlay to SELF, labeled with ID, using FACE."
   (with-slots (buffer footprint-overlay) self
     (message (buffer-name buffer))
@@ -315,13 +236,13 @@ Pre-filter results with ENTRY-FILTER."
 ;;; backtracking
 (if (eq gumshoe-backlog-type 'tree)
     (require 'gumshoe-tree)
- (require 'gumshoe-ring))
+  (require 'gumshoe-ring))
 
 (defclass gumshoe--backtracker ()
   ((backlog :initform nil
             :initarg :backlog
             :documentation "Ring-buffer to remember the previous editing position.")
-   (filter :initform #'gumshoe--valid-p
+   (filter :initform #'context--valid-p
            :documentation "Filter used when backtracking.")
    (filtered :initform nil
              :documentation "The filtered log list used when backtracking.")
@@ -375,7 +296,7 @@ INCREMENTER increments the index in SELF."
         (gumshoe--hl-current-footprint filtered prev-index index))
       (if (not filtered)
           (setf msg "I haven’t recorded any entries here yet...")
-        (gumshoe--jump (nth index filtered)))
+        (context--jump (nth index filtered)))
       (when msg (message msg)))))
 
 (defun global-gumshoe-backtracking-mode-back ()
@@ -517,9 +438,9 @@ Results will be filtered using FILTER-NAME function."
        (global-gumshoe-backtracking-mode +1)
        (gumshoe--init-backtracking (oref gumshoe-mode backtracker) #',filter-name)
        (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+))))
-(gumshoe--make-xface gumshoe-backtrack gumshoe-peruse-globally gumshoe--valid-p)
-(gumshoe--make-xface gumshoe-buf-backtrack gumshoe-peruse-in-buffer gumshoe--in-current-buffer-p)
-(gumshoe--make-xface gumshoe-win-backtrack gumshoe-peruse-in-window gumshoe--in-current-window-p)
+(gumshoe--make-xface gumshoe-backtrack gumshoe-peruse-globally context--valid-p)
+(gumshoe--make-xface gumshoe-buf-backtrack gumshoe-peruse-in-buffer context--in-current-buffer-p)
+(gumshoe--make-xface gumshoe-win-backtrack gumshoe-peruse-in-window context--in-current-window-p)
 
 (make-obsolete 'gumshoe-backtrack-back 'gumshoe-buf-backtrack "3.0")
 (make-obsolete 'gumshoe-backtrack-forward 'gumshoe-buf-backtrack "3.0")

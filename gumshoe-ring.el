@@ -16,7 +16,7 @@
       (while (and continuep
                   (< i (ring-length ring)))
         (let ((entry (ring-ref ring i)))
-          (if (gumshoe--dead-p entry)
+          (if (context--dead-p entry)
               (gumshoe--delete ring i)
             (setq continuep nil)))))))
 
@@ -26,7 +26,7 @@
     (let ((i 0))
       (while (< i (ring-length ring))
         (let ((entry (ring-ref ring i)))
-          (if (gumshoe--dead-p entry)
+          (if (context--dead-p entry)
               (gumshoe--delete ring i)
             (cl-incf i)))))))
 
@@ -40,14 +40,18 @@
   (mapc (apply-partially #'gumshoe--remove-footprint-entry ring)
         (gumshoe--footprints-at position)))
 
-(cl-defmethod gumshoe--add-entry (ring (entry gumshoe--entry))
+(cl-defmethod gumshoe--add-entry (ring (entry context))
   "Add entry to the RING."
   (ring-insert ring entry)
   (when (eq gumshoe-footprint-strategy 'delete-overlapping)
     (gumshoe--remove-footprint-entries-at (point) ring))
-  (let ((overlay (make-overlay (point) (point))))
+  (let ((overlay (make-overlay (point) (point) (current-buffer))))
     (overlay-put overlay 'container entry)
-    (oset entry footprint-overlay overlay)))
+    (oset entry footprint-overlay overlay)
+    (message "SAMSAM add entry overlay %s" overlay)
+    )
+  (message "SAMSAM add entry overlay after %s" (oref entry footprint-overlay))
+  )
 (cl-defmethod gumshoe--log-if-necessary (ring &optional alarmp)
   "Check current position and log in RING if significant.
 
@@ -57,9 +61,9 @@ Log automatically if ALARMP is t."
     (let ((new-entry (funcall gumshoe-entry-type)))
       (when (or (ring-empty-p ring)
                 (let ((latest-entry (ring-ref ring 0)))
-                  (and (not (gumshoe--equal new-entry latest-entry))
+                  (and (not (context--equal new-entry latest-entry))
                        (or alarmp
-                           (not (gumshoe--in-current-buffer-p latest-entry))
+                           (not (context--in-current-buffer-p latest-entry))
                            (gumshoe--end-of-leash-p latest-entry)))))
         (gumshoe--add-entry ring new-entry)))))
 
