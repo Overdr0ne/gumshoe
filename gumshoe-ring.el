@@ -67,6 +67,15 @@ Log automatically if ALARMP is t."
                            (gumshoe--end-of-leash-p latest-entry)))))
         (gumshoe--add-entry ring new-entry)))))
 
+(cl-defmethod gumshoe--log (ring)
+  "Check current position and log in RING if significant.
+
+Log automatically if ALARMP is t."
+  (unless (cl-some #'funcall gumshoe-ignore-predicates)
+    (let ((new-entry (gumshoe--make-entry)))
+      (oset new-entry category "marker")
+      (gumshoe--add-entry ring new-entry))))
+
 (defun gumshoe--backlog-init (log-len)
   (make-ring gumshoe-log-len))
 

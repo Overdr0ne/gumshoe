@@ -315,6 +315,7 @@ INCREMENTER increments the index in SELF."
          '(global-gumshoe-backtracking-mode-back
            global-gumshoe-backtracking-mode-forward
            gumshoe-backtrack
+           gumshoe-marker-backtrack
            gumshoe-buf-backtrack
            gumshoe-win-backtrack)))
     (cl-some (lambda (cmd) (equal this-command cmd))
@@ -441,6 +442,14 @@ Results will be filtered using FILTER-NAME function."
 (gumshoe--make-xface gumshoe-backtrack gumshoe-peruse-globally context--valid-p)
 (gumshoe--make-xface gumshoe-buf-backtrack gumshoe-peruse-in-buffer context--in-current-buffer-p)
 (gumshoe--make-xface gumshoe-win-backtrack gumshoe-peruse-in-window context--in-current-window-p)
+
+;; Markers for manually marking a position
+(defun gumshoe-drop-marker ()
+  "Drop a \"marker\" at point."
+  (interactive)
+  (gumshoe--log (oref (oref gumshoe-mode backtracker) backlog)))
+
+(gumshoe--make-xface gumshoe-marker-backtrack gumshoe-peruse-markers context--marker-context-p)
 
 (make-obsolete 'gumshoe-backtrack-back 'gumshoe-buf-backtrack "3.0")
 (make-obsolete 'gumshoe-backtrack-forward 'gumshoe-buf-backtrack "3.0")

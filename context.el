@@ -40,6 +40,8 @@
                :documentation "Major mode of this entry.")
    (window :initform (get-buffer-window (current-buffer))
            :documentation "Window of this entry.")
+   (category :initform nil
+             :documentation "Identifier for context category.")
    (overlay :initform nil
             :documentation "Overlay for visual context information.
 This must be set manually because overlays cannot be garbage collected.")   )
@@ -85,6 +87,10 @@ This must be set manually because overlays cannot be garbage collected.")   )
 (cl-defmethod context--in-current-window-p ((entry context))
   "Check if ENTRY in the current window."
   (equal (oref entry window) (get-buffer-window (current-buffer))))
+
+(cl-defmethod context--marker-context-p ((entry context))
+  "Check if ENTRY in the current window."
+  (equal (oref entry category) "marker"))
 
 (defun context--column-at (pos)
   "Return column number at POS."
