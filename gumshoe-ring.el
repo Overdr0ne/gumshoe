@@ -5,7 +5,7 @@
 (cl-defmethod gumshoe--delete (ring index)
   "Delete entry at INDEX from RING."
   (let ((entry (ring-ref ring index)))
-    (delete-overlay (slot-value entry 'footprint-overlay)))
+    (delete-overlay (slot-value entry 'overlay)))
   (ring-remove ring index))
 
 (cl-defmethod gumshoe--clean-recent (ring)
@@ -47,10 +47,10 @@
     (gumshoe--remove-footprint-entries-at (point) ring))
   (let ((overlay (make-overlay (point) (point) (current-buffer))))
     (overlay-put overlay 'container entry)
-    (oset entry footprint-overlay overlay)
+    (oset entry overlay overlay)
     (message "SAMSAM add entry overlay %s" overlay)
     )
-  (message "SAMSAM add entry overlay after %s" (oref entry footprint-overlay))
+  (message "SAMSAM add entry overlay after %s" (oref entry overlay))
   )
 (cl-defmethod gumshoe--log-if-necessary (ring &optional alarmp)
   "Check current position and log in RING if significant.

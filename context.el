@@ -40,8 +40,8 @@
                :documentation "Major mode of this entry.")
    (window :initform (get-buffer-window (current-buffer))
            :documentation "Window of this entry.")
-   (footprint-overlay :initform nil
-                      :documentation "Footprint overlay.
+   (overlay :initform nil
+            :documentation "Overlay for visual context information.
 This must be set manually because overlays cannot be garbage collected.")   )
   "Entry class for Gumshoe’s backlog.")
 
@@ -55,7 +55,7 @@ This must be set manually because overlays cannot be garbage collected.")   )
 
 (cl-defmethod context--jump ((self context))
   "Jump Point to buffer and position in SELF."
-  (let ((position (overlay-start (oref self footprint-overlay))))
+  (let ((position (overlay-start (oref self overlay))))
     (with-slots (buffer) self
       (if gumshoe-prefer-same-window
           (pop-to-buffer-same-window buffer)
@@ -64,16 +64,16 @@ This must be set manually because overlays cannot be garbage collected.")   )
 
 (cl-defmethod context--dead-p ((self context))
   "Check if SELF is dead."
-  (if (oref self footprint-overlay)
+  (if (oref self overlay)
       (let* ((buffer (oref self buffer))
-             (pos (overlay-start (oref self footprint-overlay))))
+             (pos (overlay-start (oref self overlay))))
         (when (or (not pos)
                   (not (buffer-live-p buffer))
                   (with-current-buffer buffer
                     (>= pos (point-max))))
           (message "SAMSAMSAM: dead entry %s" self)
-          (message "SAMSAMSAM: dead overlay %s" (oref self footprint-overlay))
-          (message "SAMSAMSAM: dead pos %s" (overlay-start (oref self footprint-overlay)))
+          (message "SAMSAMSAM: dead overlay %s" (oref self overlay))
+          (message "SAMSAMSAM: dead pos %s" (overlay-start (oref self overlay)))
           t))
     t))
 
@@ -93,7 +93,7 @@ This must be set manually because overlays cannot be garbage collected.")   )
     (current-column)))
 (cl-defmethod context--distance-to ((self context))
   "Return the Euclidean distance between point and SELF."
-  (let* ((pos (overlay-start (oref self footprint-overlay)))
+  (let* ((pos (overlay-start (oref self overlay)))
          (line (line-number-at-pos pos))
          (dline (abs (- line
                         (line-number-at-pos (point)))))
@@ -106,10 +106,10 @@ This must be set manually because overlays cannot be garbage collected.")   )
   "Return t if SELF and OTHER are approximately equal."
   (and
    (equal (oref self filename) (oref other filename))
-   (oref self footprint-overlay)
-   (oref other footprint-overlay)
-   (equal (overlay-start (oref self footprint-overlay))
-          (overlay-start (oref other footprint-overlay)))))
+   (oref self overlay)
+   (oref other overlay)
+   (equal (overlay-start (oref self overlay))
+          (overlay-start (oref other overlay)))))
 
 (when (require 'perspective nil t)
   (defclass context-persp (context)
@@ -130,12 +130,12 @@ This must be set manually because overlays cannot be garbage collected.")   )
 
   (cl-defmethod context--jump ((self context-persp))
     "Jump Point to buffer, perspective and position in SELF."
-    (with-slots (buffer perspective footprint-overlay) self
+    (with-slots (buffer perspective overlay) self
       (persp-switch perspective)
       (if gumshoe-prefer-same-window
           (pop-to-buffer-same-window buffer)
         (pop-to-buffer buffer))
-      (let ((position (overlay-start footprint-overlay)))
+      (let ((position (overlay-start overlay)))
         (goto-char position))))
   )
 

@@ -198,21 +198,21 @@ Pre-filter results with ENTRY-FILTER."
 ;;; footprints
 (cl-defmethod gumshoe--mark-footprint ((self context) id face)
   "Add footprint overlay to SELF, labeled with ID, using FACE."
-  (with-slots (buffer footprint-overlay) self
+  (with-slots (buffer overlay) self
     (message (buffer-name buffer))
     (let* ((label (int-to-string id)))
       (when (and buffer (> (buffer-size buffer) 1))
         (put-text-property 0 (length label) 'face face label)
-        (overlay-put footprint-overlay 'after-string label)))))
+        (overlay-put overlay 'after-string label)))))
 (defun gumshoe--replace-footprint (entries index face)
   "Add footprint overlay at footprint INDEX in FOOTPRINTS, using FACE."
   (let* ((label (int-to-string (- (length entries) index)))
          (entry (nth index entries))
-         (footprint-overlay (slot-value entry 'footprint-overlay))
-         (position (overlay-start footprint-overlay)))
+         (overlay (slot-value entry 'overlay))
+         (position (overlay-start overlay)))
     (when gumshoe-cover-old-footprints-p (gumshoe--cover-old-footprints-at position))
     (put-text-property 0 (length label) 'face face label)
-    (overlay-put footprint-overlay 'after-string label)))
+    (overlay-put overlay 'after-string label)))
 (defun gumshoe--hl-current-footprint (entries prev-index cur-index)
   "Replace PREV-INDEX with CUR-INDEX as current footprint in FOOTPRINTS."
   (when entries
@@ -222,7 +222,7 @@ Pre-filter results with ENTRY-FILTER."
   "Display footprints for all ENTRIES."
   (let ((i 1))
     (dolist (entry (reverse entries))
-      (let ((position (overlay-start (oref entry footprint-overlay))))
+      (let ((position (overlay-start (oref entry overlay))))
         (when (eq gumshoe-footprint-strategy 'cover-old)
           (gumshoe--cover-old-footprints-at position))
         (gumshoe--mark-footprint entry i 'gumshoe--footprint-face)
@@ -230,8 +230,8 @@ Pre-filter results with ENTRY-FILTER."
 (defun gumshoe--hide-footprints (entries)
   "Hide footprints in FOOTPRINTS."
   (dolist (entry entries)
-    (with-slots (footprint-overlay) entry
-      (overlay-put footprint-overlay 'after-string ""))))
+    (with-slots (overlay) entry
+      (overlay-put overlay 'after-string ""))))
 
 ;;; backtracking
 (if (eq gumshoe-backlog-type 'tree)

@@ -83,7 +83,7 @@
       (gumshoe--remove-footprint-entries-at self (point)))
     (let ((overlay (make-overlay (point) (point) (current-buffer))))
       (overlay-put overlay 'container new-node)
-      (oset entry footprint-overlay overlay))
+      (oset entry overlay overlay))
     (etree--insert self new-node)
     ))
 
