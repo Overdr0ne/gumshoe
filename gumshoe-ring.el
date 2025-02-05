@@ -4,7 +4,8 @@
 
 (cl-defmethod gumshoe--delete (ring index)
   "Delete entry at INDEX from RING."
-  (let ((entry (ring-ref ring index)))
+  (if-let ((entry (ring-ref ring index))
+           (overlay (slot-value entry 'overlay)))
     (delete-overlay (slot-value entry 'overlay)))
   (ring-remove ring index))
 
@@ -31,10 +32,12 @@
             (cl-incf i)))))))
 
 (cl-defmethod gumshoe--remove-footprint-entry (ring footprint)
-  (ring-remove ring
-               (ring-member ring
-                            (overlay-get footprint 'container)))
-  (delete-overlay footprint))
+  (unless (ring-empty-p ring)
+    (let* ((container (overlay-get footprint 'container))
+           (index (ring-member ring container)))
+      (when index
+        (delete-overlay footprint)
+        (ring-remove ring index)))))
 
 (cl-defmethod gumshoe--remove-footprint-entries-at (position ring)
   (mapc (apply-partially #'gumshoe--remove-footprint-entry ring)
@@ -42,23 +45,22 @@
 
 (cl-defmethod gumshoe--add-entry (ring (entry context))
   "Add entry to the RING."
-  (ring-insert ring entry)
-  (when (eq gumshoe-footprint-strategy 'delete-overlapping)
-    (gumshoe--remove-footprint-entries-at (point) ring))
-  (let ((overlay (make-overlay (point) (point) (current-buffer))))
+  (ring-insert ring entry))
+(defun gumshoe--make-entry ()
+  (let ((entry (funcall gumshoe-entry-type))
+        (overlay (make-overlay (point) (point) (current-buffer))))
     (overlay-put overlay 'container entry)
     (oset entry overlay overlay)
-    (message "SAMSAM add entry overlay %s" overlay)
-    )
-  (message "SAMSAM add entry overlay after %s" (oref entry overlay))
-  )
+    entry))
 (cl-defmethod gumshoe--log-if-necessary (ring &optional alarmp)
   "Check current position and log in RING if significant.
 
 Log automatically if ALARMP is t."
   (unless (cl-some #'funcall gumshoe-ignore-predicates)
+    (when (eq gumshoe-footprint-strategy 'delete-overlapping)
+      (gumshoe--remove-footprint-entries-at (point) ring))
     (gumshoe--clean-recent ring)
-    (let ((new-entry (funcall gumshoe-entry-type)))
+    (let ((new-entry (gumshoe--make-entry)))
       (when (or (ring-empty-p ring)
                 (let ((latest-entry (ring-ref ring 0)))
                   (and (not (context--equal new-entry latest-entry))

@@ -66,17 +66,16 @@ This must be set manually because overlays cannot be garbage collected.")   )
 
 (cl-defmethod context--dead-p ((self context))
   "Check if SELF is dead."
-  (if (oref self overlay)
-      (let* ((buffer (oref self buffer))
-             (pos (overlay-start (oref self overlay))))
-        (when (or (not pos)
-                  (not (buffer-live-p buffer))
-                  (with-current-buffer buffer
-                    (>= pos (point-max))))
-          (message "SAMSAMSAM: dead entry %s" self)
-          (message "SAMSAMSAM: dead overlay %s" (oref self overlay))
-          (message "SAMSAMSAM: dead pos %s" (overlay-start (oref self overlay)))
-          t))
+  (if-let* ((overlay (oref self overlay))
+            (buffer (overlay-buffer overlay))
+            (pos (overlay-start overlay)))
+      (if (or (not buffer)
+              (not pos)
+              (not (buffer-live-p buffer))
+              (with-current-buffer buffer
+                (>= pos (point-max))))
+          t
+        nil)
     t))
 
 ;;; filter predicates
@@ -99,15 +98,20 @@ This must be set manually because overlays cannot be garbage collected.")   )
     (current-column)))
 (cl-defmethod context--distance-to ((self context))
   "Return the Euclidean distance between point and SELF."
-  (let* ((pos (overlay-start (oref self overlay)))
-         (line (line-number-at-pos pos))
-         (dline (abs (- line
-                        (line-number-at-pos (point)))))
-         (column (context--column-at pos))
-         (dcolumn (abs (- column
-                          (current-column))))
-         (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
-    (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))))
+  (if-let* ((overlay (oref self overlay))
+            (buf (overlay-buffer overlay))
+            (_ (equal buf (current-buffer)))
+            (pos (overlay-start overlay))
+            (line (with-current-buffer buf (line-number-at-pos pos)))
+            (dline (abs (- line
+                           (line-number-at-pos (point)))))
+            (column (context--column-at pos))
+            (dcolumn (abs (- column
+                             (current-column))))
+            (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
+      (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))
+    (message "failed to get distance for context %s" self)
+    1000))
 (cl-defmethod context--equal ((self context) (other context))
   "Return t if SELF and OTHER are approximately equal."
   (and

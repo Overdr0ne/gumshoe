@@ -123,10 +123,9 @@ Set to nil if you would like all footprints displayed at once."
 
 (defun gumshoe--overlay-is-footprint-p (overlay)
   "Return non-nil if OVERLAY is a context."
-  (let ((entry (overlay-get overlay 'container)))
-    (if entry
-        (object-of-class-p entry 'context)
-      nil)))
+  (if-let ((entry (overlay-get overlay 'container)))
+      (object-of-class-p entry 'context)
+    nil))
 
 (defun gumshoe--footprints-at (position)
   (seq-filter 'gumshoe--overlay-is-footprint-p (overlays-in (- position gumshoe-footprint-radius) (+ position gumshoe-footprint-radius))))
