@@ -36,7 +36,10 @@
 (require 'eieio)
 (require 'cl-lib)
 (require 'subr-x)
+(require 'cl-generic)
 (require 'context)
+(require 'gumshoe-tree)
+(require 'gumshoe-ring)
 
 (defgroup gumshoe nil
   "The gumshoe movement tracker."
@@ -144,7 +147,8 @@ Set to nil if you would like all footprints displayed at once."
                gumshoe-ignored-minor-modes)))
 
 (defcustom gumshoe-auto-cancel-backtracking-p t
-  "Automatically cancel backtracking when non-backtracking commands are entered during backtracking."
+  "Automatically cancel backtracking when non-backtracking commands are
+entered during backtracking."
   :type 'boolean)
 
 (defcustom gumshoe-display-buffer-action '((display-buffer-reuse-window display-buffer-same-window))
@@ -253,6 +257,17 @@ Pre-filter results with ENTRY-FILTER."
         :documentation "Stores info for the user during backtracking."))
   "Gumshoe’s backtracker keeps track of backtracking state.")
 
+(defclass gumshoe--mode ()
+  ((backtracker :initform nil
+                :documentation "Stores the backtracking state.")
+   (timer :initform nil
+          :documentation "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'."))
+  "Gumshoe mode information.")
+
+(defcustom gumshoe-mode nil
+  "Contains global data for gumshoe-mode."
+  :type 'gumshoe--mode)
+
 (cl-defmethod gumshoe--increment-index ((self gumshoe--backtracker) incrementer)
   "Increment index in SELF with INCREMENTER function.
 
@@ -270,10 +285,10 @@ In particular, notify users if index would go outside log boundaries."
       (setf msg (format "Gumshoe: entry #%i: %i"
                         (- (length filtered) index)
                         (length filtered)))))))
-(cl-defmethod gumshoe--init-backtracking ((self gumshoe--backtracker) _filter)
+(cl-defmethod gumshoe--init-backtracking ((self gumshoe--backtracker) filter_)
   "FILTER SELF, and reset slots to start backtracking."
   (with-slots (backlog filter filtered msg index) self
-    (setf filter _filter)
+    (setf filter filter_)
     (gumshoe--clean backlog)
     (message "timeline %s" (gumshoe--construct-timeline backlog))
     (setf filtered
@@ -331,12 +346,6 @@ INCREMENTER increments the index in SELF."
     (gumshoe--log-if-necessary backlog t)))
 
 ;;; Mode definition
-(defclass gumshoe--mode ()
-  ((backtracker :initform nil
-                :documentation "Stores the backtracking state.")
-   (timer :initform nil
-          :documentation "Global idle timer that logs position for `gumshoe--global-backlog’ after `gumshoe-idle-time'."))
-  "Gumshoe mode information.")
 (cl-defmethod gumshoe--init ((self gumshoe--mode))
   "Initialize SELF, setting hooks and timers."
   (with-slots (backtracker timer) self
@@ -354,8 +363,6 @@ INCREMENTER increments the index in SELF."
     (cancel-timer timer))
   self)
 
-(defvar gumshoe-mode nil
-  "Contains global data for gumshoe-mode.")
 ;;;###autoload
 (define-minor-mode global-gumshoe-mode
   "Toggle global Gumshoe minor mode.
@@ -430,7 +437,7 @@ Results will be filtered using FILTER-NAME function."
   `(progn
      (defun ,peruse-name ()
        (interactive)
-       (gumshoe--peruse (gumshoe--get-timeline (oref (oref gumshoe-mode backtracker) backlog))
+       (gumshoe--peruse (gumshoe--construct-timeline (oref (oref gumshoe-mode backtracker) backlog))
                         gumshoe-slot-schema
                         #',filter-name))
      (defun ,backtrack-name ()

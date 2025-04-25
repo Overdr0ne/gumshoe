@@ -1,5 +1,6 @@
 (require 'ring)
 (require 'eieio)
+(require 'cl-generic)
 (require 'cl-lib)
 
 (cl-defmethod gumshoe--delete (ring index)

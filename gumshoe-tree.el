@@ -1,5 +1,6 @@
 (require 'dash)
 (require 'etree)
+(require 'cl-generic)
 
 (cl-defmethod gumshoe--clean-root ((self etree--tree))
   (let* (

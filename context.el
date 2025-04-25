@@ -24,6 +24,9 @@
 
 ;;; Code:
 
+(require 'eieio)
+(require 'perspective)
+
 (defclass context ()
   ((filename :initform (buffer-file-name)
              :documentation "The full path of this entry.")
@@ -47,7 +50,7 @@
 This must be set manually because overlays cannot be garbage collected.")   )
   "Entry class for Gumshoe’s backlog.")
 
-(defcustom gumshoe-horizontal-scale 4
+(defcustom context-horizontal-scale 4
   "Horizontal follow distances are divided by this factor."
   :type 'integer)
 
@@ -108,7 +111,7 @@ This must be set manually because overlays cannot be garbage collected.")   )
             (column (context--column-at pos))
             (dcolumn (abs (- column
                              (current-column))))
-            (dcolumn-scaled (/ dcolumn gumshoe-horizontal-scale)))
+            (dcolumn-scaled (/ dcolumn context-horizontal-scale)))
       (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))
     (message "failed to get distance for context %s" self)
     1000))
@@ -121,7 +124,7 @@ This must be set manually because overlays cannot be garbage collected.")   )
    (equal (overlay-start (oref self overlay))
           (overlay-start (oref other overlay)))))
 
-(when (require 'perspective nil t)
+(defun context-persp-load ()
   (defclass context-persp (context)
     ((perspective :initform (persp-current-name)
                   :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
@@ -148,6 +151,7 @@ This must be set manually because overlays cannot be garbage collected.")   )
       (let ((position (overlay-start overlay)))
         (goto-char position))))
   )
+(add-hook 'persp-mode-hook #'context-persp-load)
 
 (provide 'context)
 ;;; context.el ends here
