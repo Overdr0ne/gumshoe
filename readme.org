@@ -33,33 +33,52 @@
   #+end_src
 
 * Usage
-  - Once *global-gumshoe-mode* is enabled, gumshoe will automatically start recording movements into the *gumshoe-backlog* ringbuffer.
-  - Configure Gumshoe’s euclidean follow distance by customizing the *gumshoe-follow-distance* variable.
-  - Configure Gumshoe’s idle time by customizing the *gumshoe-idle-time* variable.
-  - Configure the number of locations logged with the *gumshoe-log-len* variable.
-  - Horizontal distance is scaled down by a factor of 4 by default, since columns are approximately that much narrower than rows, but you can modify *gumshoe-horizontal-scale* if you want.
-  - If you would like to disable gumshoe backtracking in some contexts, you may use *gumshoe-ignored-minor-modes* or *gumshoe-ignored-major-modes*, to ignore by mode, or more generically just add to *gumshoe-ignore-predicates* any condition where you would like gumshoe to stop tracking, like *minibufferp*, added by default.
+  - Once *global-gumshoe-mode* is enabled, gumshoe will automatically start recording movements into the backlog.
+  - Configure the backlog data structure with *gumshoe-backlog-type*: ~'ring~ (default, circular buffer) or ~'tree~ (branching timeline).
+  - Configure Gumshoe's euclidean follow distance by customizing the *gumshoe-follow-distance* variable.
+  - Configure Gumshoe's idle time by customizing the *gumshoe-idle-time* variable.
+  - Configure the number of locations logged with the *gumshoe-log-len* variable (applies to ring mode).
+  - Horizontal distance is scaled down by a factor of 4 by default via *context-horizontal-scale*, since columns are approximately that much narrower than rows.
+  - If you would like to disable gumshoe tracking in some contexts, you may use *gumshoe-ignored-minor-modes* or *gumshoe-ignored-major-modes*, to ignore by mode, or more generically just add to *gumshoe-ignore-predicates* any condition where you would like gumshoe to stop tracking, like *minibufferp*, added by default.
 ** Backtracking
-   Backtracking works a bit like isearch or Vim’s jump-list. Point will jump sequentially between points in the backlog.
+   Backtracking works a bit like isearch or Vim's jump-list. Point will jump sequentially between points in the backlog.
    [[./backtrack-demo.gif]]
-   - Use *gumshoe-backtrack-back* and *gumshoe-backtrack-forward* to jump backwards and forwards in the log.
-   - There is built-in support for buffer-local and window-local backtracking using commands: *gumshoe-[buf/win]-backtrack-back* and *gumshoe-[buf/win]-backtrack-forward*, such that all logs can be tracked independently.
-   - I have also provided default support for [[https://github.com/nex3/perspective-el][perspective]]-local backtracking using commands: *gumshoe-persp-backtrack-back* and *gumshoe-persp-backtrack-forward*, such that all logs can be tracked independently.
-   - Gumshoe activates the *global-gumshoe-backtracking-mode* during backtracking. Leave this mode with *keyboard-quit* (usually *C-g*).
-   - Like any minor mode, you may customize it’s local keymap (*global-gumshoe-backtracking-mode-map*).
-   - By default, Gumshoe also marks "footprints", an overlay visually indicating entry points in the buffer. Toggle *gumshoe-show-footprints-p* to disable them.
-   - By default, backtracking is disabled automatically when you type a non-backtracking command, but you can disable this behavior by setting *gumshoe-auto-cancel-backtracking-p* to nil, as shown above.
-   - By default, in order to keep the buffer from getting too cluttered with footprints, only the most recent entry is shown around a footprint within some *gumshoe-footprint-radius*. Set *gumshoe-cover-old-footprints-p* to nil to see all footprints.
+   - Use *gumshoe-backtrack* to enter backtracking mode and start navigating the global log. Once in backtracking mode, use ~backward-paragraph~ and ~forward-paragraph~ (usually *{* and *}*) to navigate.
+   - There is built-in support for filtered backtracking:
+     - *gumshoe-buf-backtrack* - Navigate entries only in the current buffer
+     - *gumshoe-win-backtrack* - Navigate entries only in the current window
+     - *gumshoe-marker-backtrack* - Navigate only manually dropped markers
+   - [[https://github.com/nex3/perspective-el][Perspective.el]] integration: *gumshoe-persp-backtrack* for perspective-local navigation (loaded automatically when perspective-mode is active).
+   - Gumshoe activates *global-gumshoe-backtracking-mode* during backtracking. Leave this mode with *keyboard-quit* (usually *C-g*).
+   - Customize the backtracking keymap via *global-gumshoe-backtracking-mode-map*.
+   - By default, Gumshoe marks "footprints" (overlays indicating entry points). Toggle *gumshoe-show-footprints-p* to disable them.
+   - By default, backtracking auto-cancels when you type a non-backtracking command. Disable with ~(setf gumshoe-auto-cancel-backtracking-p nil)~.
+   - Footprint strategy via *gumshoe-footprint-strategy*:
+     - ~'cover-old~ (default) - Only show most recent footprint within *gumshoe-footprint-radius*
+     - ~'delete-overlapping~ - Delete old overlapping footprints
+     - ~nil~ - Show all footprints
 ** Perusing
    You can also visually browse the backlog in the minibuffer with the peruse commands:
-   *gumshoe-peruse-globally*, *gumshoe-peruse-in-buffer*, *gumshoe-peruse-in-window* and *gumshoe--peruse-in-persp*.
-   - Customize *gumshoe-slot-schema* to specify which, and in what order you would like entry fields displayed.
-   - Make your own peruse commands by providing a filter predicate to gumshoe--peruse.
+   - *gumshoe-peruse-globally* - Browse all entries via completing-read
+   - *gumshoe-peruse-in-buffer* - Browse entries in current buffer
+   - *gumshoe-peruse-in-window* - Browse entries in current window
+   - *gumshoe-peruse-in-persp* - Browse entries in current perspective (when perspective.el is loaded)
+   - *gumshoe-peruse-markers* - Browse manually dropped markers
+   - Customize *gumshoe-slot-schema* to specify which fields are displayed and in what order (default: ~'(time buffer position line)~).
+   - Make your own peruse commands by providing a filter predicate to ~gumshoe--peruse~.
+** Manual Markers
+   You may manually drop a marker at any time with *gumshoe-drop-marker*. These markers can be navigated independently with *gumshoe-marker-backtrack* and *gumshoe-peruse-markers*.
 
 * Change log
+** 3.1
+   - Abstracted backlog implementation: Users can now choose between ring (circular buffer) and tree (branching timeline) via ~gumshoe-backlog-type~.
+   - Unified command interface: Backtracking commands now enter a transient mode (~global-gumshoe-backtracking-mode~) where movement keys navigate the timeline. No more separate -back/-forward commands.
+   - Improved EIEIO method dispatch with proper class wrappers for both ring and tree implementations.
+   - Fixed cover-old footprint strategy to properly hide overlapping footprints.
+   - Moved shared entry creation logic to ~gumshoe--make-entry~ in gumshoe-lib.el for consistency.
 ** 3.0
-   - I have turned backtracking into a minor mode. This much better isolates all the backtracking state, allowing users to customize any number of keybindings for that minor mode, rather than putting them in a global map. Users can also move around the buffer with footprints still active, which can be a useful feature. It also greatly simplifies and standardized much of the logic associated with backtracking.
-   - Fixed a number of nasty bugs associated with cleaning up dead bookmarks.
+   - Turned backtracking into a minor mode. This better isolates backtracking state, allows customizable keybindings via the minor mode map, and lets users move around with footprints still active.
+   - Fixed bugs associated with cleaning up dead entries.
 ** 2.0
    - Gumshoe now uses 'gumshoe--entries' in the backlog instead of marks or bookmarks. I tried to make bookmarks work for me, but found the bookmark-alist far too ingrained into their interface and ended up finding it easier and more extensible to just make my own abstraction. It contains basically all the same metadata as a bookmark, but users/developers may add whatever metadata they want, by inheriting from it. That's how I added the perspective field.
    - peruse: this is my take on `dogears-list`.  It uses completing read to browse through the backlog. The display is customizable, allowing users to specify what and in what order gumshoe--entry fields are selected.
@@ -86,10 +105,11 @@
   - works ootb without much configuration or dependency on external packages
   Packages above may have one or two of these features, but changes on the order of a complete rewrite would be required to make them work like gumshoe. But comments are totally welcome if you’d like to open an issue.
 
-* Outstanding issues
-** Extension is complex
-- Gumshoe needs to know entry format before it begins tracking. This makes dynamically changing that format effectively impossible without reinitializing the mode.
-- To require fields from multiple elpa/melpa packages requires defining a new class for each combination(to avoid multiple inheritance). This is good to a certain extent, to force me or anyone else to think about interactions between those packages, like, jump operations often need to be sequenced carefully to work as intended.
-** Make common ’context’ interface
-- The gumshoe--entry class is effectively a replacement of bookmarks. I’d like to maybe define an interface using cl-defgeneric that might just work for everything, so people could use a function like context--jump, and it would dispatch the correct method for bookmarks or gumshoe--entry, or whatever.
-** I’d like to add an ’ibacklog’ that works like ibuffer as an alternative to peruse
+* Outstanding Issues
+** Dynamic Entry Format Changes
+- Gumshoe needs to know entry format before tracking begins. Dynamically changing the format requires reinitializing the mode.
+- Adding fields from multiple packages requires defining a new class for each combination (to avoid multiple inheritance).
+** Common Context Interface
+- The ~context~ class is effectively a bookmark replacement. Consider defining a generic interface using ~cl-defgeneric~ that works for bookmarks, contexts, and other navigation targets.
+** Alternative Browsing UIs
+- Add an 'ibacklog' buffer interface (like ibuffer) as an alternative to peruse's completing-read interface.
