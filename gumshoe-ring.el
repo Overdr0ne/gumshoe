@@ -2,6 +2,8 @@
 (require 'eieio)
 (require 'cl-generic)
 (require 'cl-lib)
+(require 'context)
+(require 'gumshoe-lib)
 
 (cl-defmethod gumshoe--delete (ring index)
   "Delete entry at INDEX from RING."

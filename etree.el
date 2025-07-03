@@ -25,6 +25,8 @@
 
 ;;; Code:
 
+(require 'eieio)
+
 (defclass etree--node ()
   (
    (entry :initform nil

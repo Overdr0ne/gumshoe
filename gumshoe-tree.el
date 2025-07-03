@@ -1,6 +1,8 @@
 (require 'dash)
 (require 'etree)
 (require 'cl-generic)
+(require 'context)
+(require 'gumshoe-lib)
 
 (cl-defmethod gumshoe--clean-root ((self etree--tree))
   (let* (
