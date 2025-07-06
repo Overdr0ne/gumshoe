@@ -56,7 +56,7 @@ This must be set manually because overlays cannot be garbage collected.")   )
 
 (cl-defmethod context--valid-p ((self context))
   "Return t if SELF is valid."
-  (not (cl-check-type self context)))
+  (cl-typep self 'context))
 
 (cl-defmethod context--jump ((self context))
   "Jump Point to buffer and position in SELF."
