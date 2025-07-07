@@ -153,5 +153,12 @@ This must be set manually because overlays cannot be garbage collected.")   )
   )
 (add-hook 'persp-mode-hook #'context-persp-load)
 
+(cl-defmethod context--cleanup ((self context))
+  "Clean up resources (like overlays) held by SELF."
+  (let ((overlay (oref self overlay)))
+    (when (and overlay (overlayp overlay))
+      (delete-overlay overlay)
+      (oset self overlay nil))))
+
 (provide 'context)
 ;;; context.el ends here

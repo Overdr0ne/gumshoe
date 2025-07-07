@@ -91,7 +91,11 @@
     foundp))
 
 (cl-defmethod etree--delete ((self etree--node))
+  "Delete SELF from tree and clean up overlay."
   (when self
+    (let ((entry (oref self entry)))
+      (when (object-of-class-p entry 'context)
+        (context--cleanup entry)))
     (when (oref self parent)
       (oset (oref self parent) children (oref self children)))
     (dolist (child (oref self children))

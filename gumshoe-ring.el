@@ -6,11 +6,11 @@
 (require 'gumshoe-lib)
 
 (cl-defmethod gumshoe--delete (ring index)
-  "Delete entry at INDEX from RING."
-  (if-let ((entry (ring-ref ring index))
-           (overlay (slot-value entry 'overlay)))
-    (delete-overlay (slot-value entry 'overlay)))
-  (ring-remove ring index))
+  "Delete entry at INDEX from RING and clean up its overlay."
+  (let ((entry (ring-ref ring index)))
+    (when (object-of-class-p entry 'context)
+      (context--cleanup entry))
+    (ring-remove ring index)))
 
 (cl-defmethod gumshoe--clean-recent (ring)
   "Cleanup recent dead entries from RING."
