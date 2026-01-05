@@ -44,16 +44,10 @@
   )
 
 (cl-defmethod gumshoe--remove-footprint-entry ((self etree--tree) footprint)
-  (when (overlay-get footprint 'container)
-      (etree--remove self (overlay-get footprint 'container))
+  "Remove FOOTPRINT entry from SELF."
+  (when-let ((tree-node (overlay-get footprint 'tree-node)))
+    (etree--remove self tree-node)
     (delete-overlay footprint)))
-
-(defun gumshoe--overlay-is-footprint-p (overlay)
-  "Return non-nil if OVERLAY is a context."
-  (let ((container (overlay-get overlay 'container)))
-    (if container
-        (object-of-class-p container 'etree--node)
-      nil)))
 
 (cl-defmethod gumshoe--remove-footprint-entries-at ((self etree--tree) position)
   (when position
@@ -79,16 +73,15 @@
 
 (cl-defmethod gumshoe--add-entry ((self etree--tree) (entry context))
   "Add ENTRY to SELF"
-  (let* ((new-node (etree--node :entry entry))
-         )
+  (let* ((new-node (etree--node :entry entry)))
     (cl-assert (and new-node (object-of-class-p new-node 'etree--node)))
     (when (eq gumshoe-footprint-strategy 'delete-overlapping)
       (gumshoe--remove-footprint-entries-at self (point)))
     (let ((overlay (make-overlay (point) (point) (current-buffer))))
-      (overlay-put overlay 'container new-node)
+      (overlay-put overlay 'container entry)
+      (overlay-put overlay 'tree-node new-node)
       (oset entry overlay overlay))
-    (etree--insert self new-node)
-    ))
+    (etree--insert self new-node)))
 
 (cl-defmethod gumshoe--log-if-necessary ((self etree--tree) &optional alarmp)
   "Check current position and log in RING if significant.
