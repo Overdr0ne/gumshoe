@@ -38,8 +38,7 @@
 (require 'subr-x)
 (require 'cl-generic)
 (require 'context)
-(require 'gumshoe-tree)
-(require 'gumshoe-ring)
+(require 'gumshoe-lib)
 
 (defun gumshoe--cover-old-footprints-at (position)
   (let* ((footprints (gumshoe--footprints-at position)))
@@ -115,7 +114,8 @@ Pre-filter results with ENTRY-FILTER."
          (entry (nth index entries))
          (overlay (slot-value entry 'overlay))
          (position (overlay-start overlay)))
-    (when gumshoe-cover-old-footprints-p (gumshoe--cover-old-footprints-at position))
+    (when (eq gumshoe-footprint-strategy 'cover-old)
+      (gumshoe--cover-old-footprints-at position))
     (put-text-property 0 (length label) 'face face label)
     (overlay-put overlay 'after-string label)))
 (defun gumshoe--hl-current-footprint (entries prev-index cur-index)
@@ -139,10 +139,6 @@ Pre-filter results with ENTRY-FILTER."
       (overlay-put overlay 'after-string ""))))
 
 ;;; backtracking
-(if (eq gumshoe-backlog-type 'tree)
-    (require 'gumshoe-tree)
-  (require 'gumshoe-ring))
-
 (defclass gumshoe--backtracker ()
   ((backlog :initform nil
             :initarg :backlog
@@ -250,6 +246,10 @@ INCREMENTER increments the index in SELF."
 ;;; Mode definition
 (cl-defmethod gumshoe--init ((self gumshoe--mode))
   "Initialize SELF, setting hooks and timers."
+  ;; Load the appropriate backlog implementation
+  (if (eq gumshoe-backlog-type 'tree)
+      (require 'gumshoe-tree)
+    (require 'gumshoe-ring))
   (with-slots (backtracker timer) self
     (setf backtracker (gumshoe--backtracker :backlog (gumshoe--backlog-init gumshoe-log-len)))
     (add-hook 'post-command-hook
