@@ -120,9 +120,17 @@ Set to nil if you would like all footprints displayed at once."
 
 ;; tracking
 (cl-defmethod gumshoe--end-of-leash-p ((last-entry context))
-  "Check if LAST-ENTRY is outside gumshoe’s boundary."
+  "Check if LAST-ENTRY is outside gumshoe's boundary."
   (> (context--distance-to last-entry)
      gumshoe-follow-distance))
+
+(defun gumshoe--make-entry ()
+  "Create a new context entry with overlay at current point."
+  (let ((entry (funcall gumshoe-entry-type))
+        (overlay (make-overlay (point) (point) (current-buffer))))
+    (overlay-put overlay 'container entry)
+    (oset entry overlay overlay)
+    entry))
 
 (provide 'gumshoe-lib)
 ;;; gumshoe-lib.el ends here

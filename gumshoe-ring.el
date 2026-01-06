@@ -62,12 +62,6 @@
   "Add ENTRY to SELF."
   (with-slots (ring) self
     (ring-insert ring entry)))
-(defun gumshoe--make-entry ()
-  (let ((entry (funcall gumshoe-entry-type))
-        (overlay (make-overlay (point) (point) (current-buffer))))
-    (overlay-put overlay 'container entry)
-    (oset entry overlay overlay)
-    entry))
 
 (cl-defmethod gumshoe--log-if-necessary ((self gumshoe--ring) &optional alarmp)
   "Check current position and log in SELF if significant.

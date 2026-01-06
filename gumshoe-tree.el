@@ -77,26 +77,33 @@
     (cl-assert (and new-node (object-of-class-p new-node 'etree--node)))
     (when (eq gumshoe-footprint-strategy 'delete-overlapping)
       (gumshoe--remove-footprint-entries-at self (point)))
-    (let ((overlay (make-overlay (point) (point) (current-buffer))))
-      (overlay-put overlay 'container entry)
-      (overlay-put overlay 'tree-node new-node)
-      (oset entry overlay overlay))
+    ;; Set tree-node property on overlay (overlay should already exist from gumshoe--make-entry)
+    (when-let ((overlay (oref entry overlay)))
+      (overlay-put overlay 'tree-node new-node))
     (etree--insert self new-node)))
 
 (cl-defmethod gumshoe--log-if-necessary ((self etree--tree) &optional alarmp)
-  "Check current position and log in RING if significant.
+  "Check current position and log in SELF if significant.
 
 Log automatically if ALARMP is t."
   (unless (cl-some #'funcall gumshoe-ignore-predicates)
     (gumshoe--clean-recent self)
-    (let ((new-entry (funcall gumshoe-entry-type)))
-      (when (or (not (oref self current)) (not (oref (oref self current) entry))
+    (let ((new-entry (gumshoe--make-entry)))
+      (when (or (not (oref self current))
+                (not (oref (oref self current) entry))
                 (let ((latest-entry (oref (oref self current) entry)))
                   (and (not (context--equal new-entry latest-entry))
                        (or alarmp
                            (not (context--in-current-buffer-p latest-entry))
                            (gumshoe--end-of-leash-p latest-entry)))))
         (gumshoe--add-entry self new-entry)))))
+
+(cl-defmethod gumshoe--log ((self etree--tree))
+  "Manually log current position in SELF as a marker."
+  (unless (cl-some #'funcall gumshoe-ignore-predicates)
+    (let ((new-entry (gumshoe--make-entry)))
+      (oset new-entry category "marker")
+      (gumshoe--add-entry self new-entry))))
 
 (defun gumshoe--backlog-init (log-len)
   (etree--tree))
