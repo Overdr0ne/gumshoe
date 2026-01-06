@@ -51,7 +51,10 @@
       (cl-some (lambda (mode)
                  (and (boundp mode)
                       (eval mode)))
-               gumshoe-ignored-minor-modes)))
+               gumshoe-ignored-minor-modes)
+      ;; Also ignore if we just exited backtracking mode
+      (memq last-command '(gumshoe-backtrack-quit
+                           gumshoe-backtrack-cancel))))
 
 (defcustom gumshoe-auto-cancel-backtracking-p t
   "Automatically cancel backtracking when non-backtracking commands are
@@ -196,20 +199,29 @@ In particular, notify users if index would go outside log boundaries."
     (when gumshoe-show-footprints-p
       (gumshoe--mark-footprints filtered))
     (setf index -1)))
+(cl-defmethod gumshoe--jump-to-index ((self gumshoe--backtracker) new-index &optional message)
+  "Jump to NEW-INDEX in SELF's filtered timeline.
+Optionally display MESSAGE."
+  (with-slots (index filtered msg) self
+    (let ((prev-index index))
+      (setf index new-index)
+      (when message
+        (setf msg message))
+      (when gumshoe-show-footprints-p
+        (gumshoe--hl-current-footprint filtered prev-index index))
+      (if (not filtered)
+          (setf msg "I haven't recorded any entries here yet...")
+        (context--jump (nth index filtered)))
+      (when msg (message msg)))))
+
 (cl-defmethod gumshoe--backtrack ((self gumshoe--backtracker) incrementer)
   "Backtrack using INCREMENTER in SELF.
 
 Only including results satisfying FILTER.
 INCREMENTER increments the index in SELF."
-  (with-slots (index filter filtered msg backlog current) self
-    (let ((prev-index index))
-      (gumshoe--increment-index self incrementer)
-      (when gumshoe-show-footprints-p
-        (gumshoe--hl-current-footprint filtered prev-index index))
-      (if (not filtered)
-          (setf msg "I haven’t recorded any entries here yet...")
-        (context--jump (nth index filtered)))
-      (when msg (message msg)))))
+  (with-slots (index msg filtered) self
+    (gumshoe--increment-index self incrementer)
+    (gumshoe--jump-to-index self index msg)))
 
 (defun global-gumshoe-backtracking-mode-back ()
   "Backtrack back in the Gumshoe backlog."
@@ -229,7 +241,9 @@ INCREMENTER increments the index in SELF."
            gumshoe-backtrack
            gumshoe-marker-backtrack
            gumshoe-buf-backtrack
-           gumshoe-win-backtrack)))
+           gumshoe-win-backtrack
+           gumshoe-backtrack-restart
+           gumshoe-backtrack-cancel)))
     (cl-some (lambda (cmd) (equal this-command cmd))
              backtracking-commands)))
 
@@ -300,6 +314,17 @@ When enabled, Gumshoe logs point movements when they exceed the
          (entries (gumshoe--construct-timeline backlog)))
     (gumshoe--hide-footprints entries)))
 
+(defun gumshoe-backtrack-restart ()
+  "Restart backtracking from the latest entry in the backlog."
+  (interactive)
+  (gumshoe--jump-to-index (oref gumshoe-mode backtracker) 0 "Restarted at latest entry..."))
+
+(defun gumshoe-backtrack-cancel ()
+  "Return to the latest entry and quit backtracking."
+  (interactive)
+  (gumshoe--jump-to-index (oref gumshoe-mode backtracker) 0)
+  (gumshoe-backtrack-quit))
+
 (defvar global-gumshoe-backtracking-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [remap keyboard-quit] 'gumshoe-backtrack-quit)
@@ -311,6 +336,8 @@ When enabled, Gumshoe logs point movements when they exceed the
     (define-key map [remap gumshoe-win-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
     (define-key map [remap backward-paragraph] 'global-gumshoe-backtracking-mode-back)
     (define-key map [remap forward-paragraph] 'global-gumshoe-backtracking-mode-forward)
+    (define-key map (kbd "C-c") 'gumshoe-backtrack-cancel)
+    (define-key map (kbd "C-r") 'gumshoe-backtrack-restart)
     map)
   "Transient keymap activated during global-gumshoe-backtracking-mode.")
 (define-minor-mode global-gumshoe-backtracking-mode

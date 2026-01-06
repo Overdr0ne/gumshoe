@@ -50,6 +50,9 @@
      - *gumshoe-marker-backtrack* - Navigate only manually dropped markers
    - [[https://github.com/nex3/perspective-el][Perspective.el]] integration: *gumshoe-persp-backtrack* for perspective-local navigation (loaded automatically when perspective-mode is active).
    - Gumshoe activates *global-gumshoe-backtracking-mode* during backtracking. Leave this mode with *keyboard-quit* (usually *C-g*).
+   - Additional backtracking commands (while in backtracking mode):
+     - *C-r* (*gumshoe-backtrack-restart*) - Reset to the latest (most recent) entry in the backlog while staying in backtracking mode
+     - *C-c* (*gumshoe-backtrack-cancel*) - Jump to the latest entry and quit backtracking
    - Customize the backtracking keymap via *global-gumshoe-backtracking-mode-map*.
    - By default, Gumshoe marks "footprints" (overlays indicating entry points). Toggle *gumshoe-show-footprints-p* to disable them.
    - By default, backtracking auto-cancels when you type a non-backtracking command. Disable with ~(setf gumshoe-auto-cancel-backtracking-p nil)~.
