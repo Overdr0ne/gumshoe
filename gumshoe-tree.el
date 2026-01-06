@@ -68,8 +68,8 @@
 (cl-defmethod gumshoe--construct-timeline-nodes ((self etree--tree))
   (etree--path self))
 (cl-defmethod gumshoe--construct-timeline ((self etree--tree))
-  (mapcar (lambda (node) (oref node entry))
-          (etree--path self)))
+  (reverse (mapcar (lambda (node) (oref node entry))
+                   (etree--path self))))
 
 (cl-defmethod gumshoe--add-entry ((self etree--tree) (entry context))
   "Add ENTRY to SELF"
