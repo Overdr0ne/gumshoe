@@ -31,21 +31,111 @@
 
 (message "%s" (emacs-version))
 
+;;; Module Loading Tests
+
+(ert-deftest gumshoe-test-load-lib ()
+  "Test that gumshoe-lib loads without errors."
+  (should (require 'gumshoe-lib nil t))
+  (should (fboundp 'gumshoe--ignore-mode-p))
+  (should (fboundp 'gumshoe--make-entry))
+  (should (boundp 'gumshoe-log-len))
+  (should (boundp 'gumshoe-follow-distance)))
+
+(ert-deftest gumshoe-test-load-context ()
+  "Test that context loads without errors."
+  (should (require 'context nil t))
+  (should (fboundp 'context--valid-p))
+  (should (fboundp 'context--jump))
+  (should (class-p 'context)))
+
+(ert-deftest gumshoe-test-load-backtracker ()
+  "Test that gumshoe-backtracker loads without errors."
+  (should (require 'gumshoe-backtracker nil t))
+  (should (class-p 'gumshoe--backtracker))
+  (should (fboundp 'gumshoe--init-backtracking))
+  (should (fboundp 'gumshoe--jump-to-index))
+  (should (fboundp 'gumshoe--backtrack)))
+
+(ert-deftest gumshoe-test-load-footprints ()
+  "Test that gumshoe-footprints loads without errors."
+  (should (require 'gumshoe-footprints nil t))
+  (should (fboundp 'gumshoe--mark-footprints))
+  (should (fboundp 'gumshoe--hide-footprints))
+  (should (fboundp 'gumshoe--cover-old-footprints-at)))
+
+(ert-deftest gumshoe-test-load-peruse ()
+  "Test that gumshoe-peruse loads without errors."
+  (should (require 'gumshoe-peruse nil t))
+  (should (fboundp 'gumshoe--peruse))
+  (should (fboundp 'gumshoe--format-record)))
+
+(ert-deftest gumshoe-test-load-ring ()
+  "Test that gumshoe-ring loads and defines backlog-init."
+  (should (require 'gumshoe-ring nil t))
+  (should (class-p 'gumshoe--ring))
+  (should (fboundp 'gumshoe--backlog-init))
+  (should (fboundp 'gumshoe--log-if-necessary))
+  (should (fboundp 'gumshoe--construct-timeline)))
+
+(ert-deftest gumshoe-test-load-tree ()
+  "Test that gumshoe-tree loads and defines backlog-init."
+  (skip-unless (require 'dash nil t))
+  (should (require 'gumshoe-tree nil t))
+  (should (fboundp 'gumshoe--backlog-init))
+  (should (fboundp 'gumshoe--log-if-necessary))
+  (should (fboundp 'gumshoe--construct-timeline)))
+
+(ert-deftest gumshoe-test-load-main ()
+  "Test that main gumshoe module loads without errors."
+  (should (require 'gumshoe nil t))
+  (should (class-p 'gumshoe--mode))
+  (should (fboundp 'global-gumshoe-mode))
+  (should (fboundp 'gumshoe-backtrack))
+  (should (fboundp 'gumshoe-backtrack-quit))
+  (should (fboundp 'gumshoe-backtrack-restart))
+  (should (fboundp 'gumshoe-backtrack-cancel))
+  (should (fboundp 'gumshoe-backtrack-resume))
+  (should (fboundp 'gumshoe-drop-marker)))
+
+;;; Backlog Initialization Tests
+
+(ert-deftest gumshoe-test-backlog-init-ring ()
+  "Test that ring backlog can be initialized."
+  (require 'gumshoe-ring)
+  (let ((backlog (gumshoe--backlog-init 10)))
+    (should backlog)
+    (should (gumshoe--ring-p backlog))))
+
+(ert-deftest gumshoe-test-backlog-init-tree ()
+  "Test that tree backlog can be initialized."
+  (skip-unless (require 'dash nil t))
+  (require 'gumshoe-tree)
+  (require 'etree)
+  (let ((backlog (gumshoe--backlog-init 10)))
+    (should backlog)
+    (should (etree--tree-p backlog))))
+
+;;; Mode Tests
+
 (ert-deftest gumshoe-mode-toggle ()
   (global-gumshoe-mode +1)
   (global-gumshoe-mode -1))
 
 (ert-deftest gumshoe-backtrack ()
+  "Test basic backtracking functionality."
   (let (start gumshoe-show-footprints-p)
     (save-excursion
       (global-gumshoe-mode +1)
       (setf gumshoe-show-footprints-p nil)
-      (call-interactively #'gumshoe-backtrack-back)
+      ;; Start backtracking
+      (gumshoe-backtrack)
       (setf start (point))
-      (call-interactively #'gumshoe-backtrack-back)
-      (call-interactively #'gumshoe-backtrack-forward)
+      ;; Navigate back and forward
+      (global-gumshoe-backtracking-mode-back)
+      (global-gumshoe-backtracking-mode-forward)
       (should (equal start (point)))
-      (call-interactively #'forward-char)
+      ;; Cancel backtracking
+      (gumshoe-backtrack-cancel)
       (global-gumshoe-mode -1))))
 
 (defun gumshoe-test-run-tests ()
