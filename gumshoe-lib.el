@@ -116,7 +116,19 @@ Set to nil if you would like all footprints displayed at once."
     nil))
 
 (defun gumshoe--footprints-at (position)
+  "Get all footprint overlays at POSITION within radius."
   (seq-filter 'gumshoe--overlay-is-footprint-p (overlays-in (- position gumshoe-footprint-radius) (+ position gumshoe-footprint-radius))))
+
+(defun gumshoe--ignore-mode-p ()
+  "Return non-nil if current buffer's major mode is ignored."
+  (or (member major-mode gumshoe-ignored-major-modes)
+      (cl-some (lambda (mode)
+                 (and (boundp mode)
+                      (eval mode)))
+               gumshoe-ignored-minor-modes)
+      ;; Also ignore if we just exited backtracking mode
+      (memq last-command '(gumshoe-backtrack-quit
+                           gumshoe-backtrack-cancel))))
 
 ;; tracking
 (cl-defmethod gumshoe--end-of-leash-p ((last-entry context))

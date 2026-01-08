@@ -32,7 +32,8 @@
 
 ;;; Code:
 
-(require 'gumshoe-core)
+;; Note: gumshoe.el is already loaded when this file is required
+;; (via with-eval-after-load), so no need to require it again
 (require 'perspective)
 (require 'context)
 

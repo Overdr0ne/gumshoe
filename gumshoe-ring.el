@@ -93,4 +93,8 @@ Log automatically if ALARMP is t."
   (with-slots (ring) self
     (ring-elements ring)))
 
+(defun gumshoe--backlog-init (log-len)
+  "Create a new gumshoe--ring with LOG-LEN capacity."
+  (gumshoe--ring :ring (make-ring log-len)))
+
 (provide 'gumshoe-ring)
