@@ -26,6 +26,7 @@
 ;;; Code:
 
 (require 'eieio)
+(require 'context)
 
 (defclass etree--node ()
   (
