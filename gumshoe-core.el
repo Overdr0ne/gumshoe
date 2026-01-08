@@ -39,6 +39,8 @@
 (require 'cl-generic)
 (require 'context)
 (require 'gumshoe-lib)
+(require 'gumshoe-ring)
+(require 'gumshoe-tree)
 
 (defun gumshoe--cover-old-footprints-at (position)
   (let* ((footprints (gumshoe--footprints-at position)))
@@ -261,12 +263,15 @@ INCREMENTER increments the index in SELF."
     (gumshoe--log-if-necessary backlog t)))
 
 ;;; Mode definition
+(defun gumshoe--backlog-init (log-len)
+  "Create a new backlog based on `gumshoe-backlog-type'.
+LOG-LEN is the maximum number of entries for ring-based backlogs."
+  (if (eq gumshoe-backlog-type 'tree)
+      (etree--tree)
+    (gumshoe--ring :ring (make-ring log-len))))
+
 (cl-defmethod gumshoe--init ((self gumshoe--mode))
   "Initialize SELF, setting hooks and timers."
-  ;; Load the appropriate backlog implementation
-  (if (eq gumshoe-backlog-type 'tree)
-      (require 'gumshoe-tree)
-    (require 'gumshoe-ring))
   (with-slots (backtracker timer) self
     (setf backtracker (gumshoe--backtracker :backlog (gumshoe--backlog-init gumshoe-log-len)))
     (add-hook 'post-command-hook

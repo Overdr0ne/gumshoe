@@ -105,7 +105,4 @@ Log automatically if ALARMP is t."
       (oset new-entry category "marker")
       (gumshoe--add-entry self new-entry))))
 
-(defun gumshoe--backlog-init (log-len)
-  (etree--tree))
-
 (provide 'gumshoe-tree)

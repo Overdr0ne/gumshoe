@@ -88,10 +88,6 @@ Log automatically if ALARMP is t."
       (oset new-entry category "marker")
       (gumshoe--add-entry self new-entry))))
 
-(defun gumshoe--backlog-init (log-len)
-  "Create a new gumshoe--ring with LOG-LEN capacity."
-  (gumshoe--ring :ring (make-ring log-len)))
-
 (cl-defmethod gumshoe--construct-timeline ((self gumshoe--ring))
   "Construct timeline from SELF."
   (with-slots (ring) self
