@@ -144,5 +144,30 @@ Set to nil if you would like all footprints displayed at once."
     (oset entry overlay overlay)
     entry))
 
+;; Object formatting utilities
+(defun gumshoe--format-obj (obj format-string slot-spec)
+  "Format OBJ according to FORMAT-STRING using SLOT-SPEC fields."
+  (let* ((slot-vals (mapcar #'(lambda (slot)
+				                        (ignore-error invalid-slot-name
+				                          (slot-value obj slot))) slot-spec)))
+    (apply #'format format-string slot-vals)))
+
+(defun gumshoe--format-objs (obj-list format-string slot-spec)
+  "Format objects in OBJ-LIST according to FORMAT-STRING using SLOT-SPEC fields."
+  (mapcar #'(lambda (obj) (gumshoe--format-obj obj format-string slot-spec)) obj-list))
+
+(defun gumshoe--filter-format-objs (objs slot-spec &optional obj-filter)
+  "Filter and format OBJS according to SLOT-SPEC.
+Returns alist of (formatted-string . obj) pairs.
+If OBJ-FILTER is provided, only objects passing the filter are included."
+  (let* ((format-components (mapcar #'(lambda (_) "%s") slot-spec))
+         (separator (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face))
+         (format-string (string-join format-components separator))
+         (filtered-objs (if obj-filter
+                            (seq-filter obj-filter objs)
+                          objs))
+         (obj-strings (gumshoe--format-objs filtered-objs format-string slot-spec)))
+    (cl-mapcar #'cons obj-strings filtered-objs)))
+
 (provide 'gumshoe-lib)
 ;;; gumshoe-lib.el ends here

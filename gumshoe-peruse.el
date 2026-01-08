@@ -26,36 +26,17 @@
 (require 'context)
 (require 'gumshoe-lib)
 
-(defun gumshoe--format-record (rec format-string slot-spec)
-  "Format REC according to FORMAT-STRING using SLOT-SPEC fields."
-  (let* ((slot-vals (mapcar #'(lambda (slot)
-				                        (ignore-error invalid-slot-name
-				                          (slot-value rec slot))) slot-spec)))
-    (apply #'format format-string slot-vals)))
+(defun gumshoe--peruse (objs slot-spec &optional obj-filter)
+  "Peruse SLOT-SPEC fields of OBJS.
 
-(defun gumshoe--format-records (rec-list format-string slot-spec)
-  "Format records in REC-LIST according to FORMAT-STRING using SLOT-SPEC fields."
-  (mapcar #'(lambda (rec) (gumshoe--format-record rec format-string slot-spec)) rec-list))
-
-(defun gumshoe--peruse (recs slot-spec &optional entry-filter)
-  "Peruse SLOT-SPEC fields of RECS.
-
-Pre-filter results with ENTRY-FILTER."
-  (let* ((entries recs)
-         (format-schema (string-join (mapcar #'symbol-name slot-spec) (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face)))
+Pre-filter results with OBJ-FILTER."
+  (let* ((format-schema (string-join (mapcar #'symbol-name slot-spec) (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face)))
          (prompt (concat (propertize "(" 'face 'gumshoe--peruse-separator-face)
 			                   format-schema
 			                   (propertize ")" 'face 'gumshoe--peruse-separator-face) ": "))
-         (format-components (mapcar #'(lambda (_) "%s") slot-spec))
-	       (separator (propertize gumshoe-peruse-separator 'face 'gumshoe--peruse-separator-face))
-         (format-string (string-join format-components separator))
-         (filtered-entries (if entry-filter
-                               (seq-filter entry-filter entries)
-                             entries))
-         (entry-strings (gumshoe--format-records filtered-entries format-string slot-spec))
-         (candidates (cl-mapcar #'list entry-strings filtered-entries))
+         (candidates (gumshoe--filter-format-objs objs slot-spec obj-filter))
          (candidate (completing-read prompt candidates)))
-    (context--jump (cadr (assoc candidate candidates)))))
+    (context--jump (cdr (assoc candidate candidates)))))
 
 (provide 'gumshoe-peruse)
 ;;; gumshoe-peruse.el ends here
