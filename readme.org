@@ -53,6 +53,7 @@
    - Additional backtracking commands (while in backtracking mode):
      - *C-r* (*gumshoe-backtrack-restart*) - Reset to the latest (most recent) entry in the backlog while staying in backtracking mode
      - *C-c* (*gumshoe-backtrack-cancel*) - Jump to the latest entry and quit backtracking
+     - *C-v* (*gumshoe-backtrack-resume*) - Resume backtracking at the entry where you previously stopped. If never backtracked, starts at latest entry. If the previous entry was cleaned or wrapped, starts at earliest entry with notification
    - Customize the backtracking keymap via *global-gumshoe-backtracking-mode-map*.
    - By default, Gumshoe marks "footprints" (overlays indicating entry points). Toggle *gumshoe-show-footprints-p* to disable them.
    - By default, backtracking auto-cancels when you type a non-backtracking command. Disable with ~(setf gumshoe-auto-cancel-backtracking-p nil)~.
@@ -76,6 +77,7 @@
 ** 3.1
    - Abstracted backlog implementation: Users can now choose between ring (circular buffer) and tree (branching timeline) via ~gumshoe-backlog-type~.
    - Unified command interface: Backtracking commands now enter a transient mode (~global-gumshoe-backtracking-mode~) where movement keys navigate the timeline. No more separate -back/-forward commands.
+   - Added ~gumshoe-backtrack-resume~ command to resume backtracking at the last position where you stopped. Remembers position across backtracking sessions and handles cleaned/wrapped entries gracefully.
    - Improved EIEIO method dispatch with proper class wrappers for both ring and tree implementations.
    - Fixed cover-old footprint strategy to properly hide overlapping footprints.
    - Moved shared entry creation logic to ~gumshoe--make-entry~ in gumshoe-lib.el for consistency.

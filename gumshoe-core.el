@@ -154,9 +154,11 @@ Pre-filter results with ENTRY-FILTER."
                :documentation "An overlay indicating previous locations.")
    (index :initform 0
           :documentation "Current index backwards into the log when backtracking.")
+   (last-position :initform nil
+                  :documentation "The entry where the user last stopped backtracking.")
    (msg :initform ""
         :documentation "Stores info for the user during backtracking."))
-  "Gumshoe’s backtracker keeps track of backtracking state.")
+  "Gumshoe's backtracker keeps track of backtracking state.")
 
 (defclass gumshoe--mode ()
   ((backtracker :initform nil
@@ -243,7 +245,8 @@ INCREMENTER increments the index in SELF."
            gumshoe-buf-backtrack
            gumshoe-win-backtrack
            gumshoe-backtrack-restart
-           gumshoe-backtrack-cancel)))
+           gumshoe-backtrack-cancel
+           gumshoe-backtrack-resume)))
     (cl-some (lambda (cmd) (equal this-command cmd))
              backtracking-commands)))
 
@@ -308,11 +311,14 @@ When enabled, Gumshoe logs point movements when they exceed the
 (defun gumshoe-backtrack-quit ()
   "Quit backtracking."
   (interactive)
-  (global-gumshoe-backtracking-mode -1)
-  (let* ((backtracker (oref gumshoe-mode backtracker))
-         (backlog (oref backtracker backlog))
-         (entries (gumshoe--construct-timeline backlog)))
-    (gumshoe--hide-footprints entries)))
+  (let* ((backtracker (oref gumshoe-mode backtracker)))
+    (with-slots (filtered index last-position backlog) backtracker
+      ;; Save the current position before quitting
+      (when (and filtered (>= index 0) (< index (length filtered)))
+        (setf last-position (nth index filtered))))
+    (global-gumshoe-backtracking-mode -1)
+    (let ((entries (gumshoe--construct-timeline (oref backtracker backlog))))
+      (gumshoe--hide-footprints entries))))
 
 (defun gumshoe-backtrack-restart ()
   "Restart backtracking from the latest entry in the backlog."
@@ -324,6 +330,34 @@ When enabled, Gumshoe logs point movements when they exceed the
   (interactive)
   (gumshoe--jump-to-index (oref gumshoe-mode backtracker) 0)
   (gumshoe-backtrack-quit))
+
+(defun gumshoe-backtrack-resume ()
+  "Resume backtracking at the entry where backtracking was previously stopped.
+If never backtracked before, start at the latest entry.
+If the previous entry has been cleaned or wrapped, notify and start at earliest entry."
+  (interactive)
+  (let* ((backtracker (oref gumshoe-mode backtracker)))
+    (with-slots (last-position backlog filter) backtracker
+      (global-gumshoe-backtracking-mode +1)
+      (gumshoe--init-backtracking backtracker (or filter #'context--valid-p))
+      (if (not last-position)
+          ;; Never backtracked before, start at latest
+          (progn
+            (gumshoe--backtrack backtracker #'+)
+            (message "Starting backtrack at latest entry..."))
+        ;; Try to find the last position in the current filtered timeline
+        (with-slots (filtered) backtracker
+          (let ((resume-index (cl-position last-position filtered :test #'context--equal)))
+            (if resume-index
+                ;; Found the entry, jump to it
+                (gumshoe--jump-to-index backtracker resume-index
+                                       (format "Resumed at entry #%i"
+                                               (- (length filtered) resume-index)))
+              ;; Entry not found (cleaned or wrapped), start at earliest
+              (progn
+                (gumshoe--jump-to-index backtracker (- (length filtered) 1)
+                                       "Previous entry not found (cleaned or wrapped). Starting at earliest entry...")
+                (message "Previous backtrack position has been cleaned or wrapped. Starting at earliest entry.")))))))))
 
 (defvar global-gumshoe-backtracking-mode-map
   (let ((map (make-sparse-keymap)))
@@ -338,6 +372,7 @@ When enabled, Gumshoe logs point movements when they exceed the
     (define-key map [remap forward-paragraph] 'global-gumshoe-backtracking-mode-forward)
     (define-key map (kbd "C-c") 'gumshoe-backtrack-cancel)
     (define-key map (kbd "C-r") 'gumshoe-backtrack-restart)
+    (define-key map (kbd "C-v") 'gumshoe-backtrack-resume)
     map)
   "Transient keymap activated during global-gumshoe-backtracking-mode.")
 (define-minor-mode global-gumshoe-backtracking-mode
