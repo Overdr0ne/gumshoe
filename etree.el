@@ -26,7 +26,15 @@
 ;;; Code:
 
 (require 'eieio)
-(require 'context)
+(require 'cl-generic)
+
+;; Generic cleanup method for entries stored in tree nodes
+;; Clients can specialize this for their own entry types if cleanup is needed
+(cl-defgeneric etree--cleanup (_entry)
+  "Clean up resources held by ENTRY.
+Default implementation does nothing. Specialize this method for entry types
+that require cleanup (e.g., overlays, processes, buffers)."
+  nil)
 
 (defclass etree--node ()
   (
@@ -92,11 +100,11 @@
     foundp))
 
 (cl-defmethod etree--delete ((self etree--node))
-  "Delete SELF from tree and clean up overlay."
+  "Delete SELF from tree and clean up entry resources."
   (when self
     (let ((entry (oref self entry)))
-      (when (object-of-class-p entry 'context)
-        (context--cleanup entry)))
+      (when entry
+        (etree--cleanup entry)))
     (when (oref self parent)
       (oset (oref self parent) children (oref self children)))
     (dolist (child (oref self children))
@@ -136,10 +144,9 @@
     preorder))
 
 (cl-defmethod etree--path ((self etree--tree))
-  (let ((stk (list (oref self root)))
-        path
+  "Return the path from the root to the current node."
+  (let (path
         (continuep t)
-        (i 0)
         (iter (oref self current)))
     (while (and continuep
                 iter)

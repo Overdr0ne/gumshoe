@@ -27,6 +27,11 @@
 (require 'context)
 (require 'gumshoe-lib)
 
+;; Specialize etree cleanup for context objects to handle overlay cleanup
+(cl-defmethod etree--cleanup ((entry context))
+  "Clean up overlay resources held by context ENTRY."
+  (context--cleanup entry))
+
 (cl-defmethod gumshoe--clean-root ((self etree--tree))
   (let* (
          (timeline (gumshoe--construct-timeline-nodes self))
