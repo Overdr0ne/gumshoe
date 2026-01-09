@@ -181,9 +181,10 @@ When enabled, Gumshoe logs point movements when they exceed the
   (gumshoe-backtrack-quit))
 
 (defun gumshoe-backtrack-resume ()
-  "Resume backtracking at the entry where backtracking was previously stopped.
+  "Resume backtracking at last stopped position.
 If never backtracked before, start at the latest entry.
-If the previous entry has been cleaned or wrapped, notify and start at earliest entry."
+If the previous entry has been cleaned or wrapped, notify user and start
+at the earliest available entry."
   (interactive)
   (let* ((backtracker (oref gumshoe-mode backtracker)))
     (with-slots (last-position backlog filter) backtracker

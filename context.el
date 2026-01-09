@@ -25,7 +25,16 @@
 ;;; Code:
 
 (require 'eieio)
-(require 'perspective nil t)
+
+(defgroup context nil
+  "Library for storing and interacting with user context metadata."
+  :group 'convenience
+  :prefix "context-")
+
+(defcustom context-prefer-same-window nil
+  "Prefer jumping using the window where point currently is."
+  :type 'boolean
+  :group 'context)
 
 (defclass context ()
   ((filename :initform (buffer-file-name)
@@ -48,12 +57,12 @@
    (overlay :initform nil
             :documentation "Overlay for visual context information.
 This must be set manually because overlays cannot be garbage collected.")   )
-  "Entry class for Gumshoe’s backlog.")
+  "Entry class for tracking user context information.")
 
 (defcustom context-horizontal-scale 4
   "Horizontal follow distances are divided by this factor."
   :type 'integer
-  :group 'gumshoe)
+  :group 'context)
 
 (cl-defmethod context--valid-p ((self context))
   "Return t if SELF is valid."
@@ -63,7 +72,7 @@ This must be set manually because overlays cannot be garbage collected.")   )
   "Jump Point to buffer and position in SELF."
   (let ((position (overlay-start (oref self overlay))))
     (with-slots (buffer) self
-      (if gumshoe-prefer-same-window
+      (if context-prefer-same-window
           (pop-to-buffer-same-window buffer)
         (pop-to-buffer buffer))
       (goto-char position))))
@@ -124,35 +133,6 @@ This must be set manually because overlays cannot be garbage collected.")   )
    (oref other overlay)
    (equal (overlay-start (oref self overlay))
           (overlay-start (oref other overlay)))))
-
-(when (featurep 'perspective)
-  (defun context-persp-load ()
-    (defclass context-persp (context)
-      ((perspective :initform (persp-current-name)
-                    :documentation "Flag indicating when a gumshoe is using the log to backtrack."))
-      "Entry class for Gumshoe's backlog, with perspectives.")
-
-    (cl-defmethod context--in-current-persp-p ((entry context-persp))
-      "Check if ENTRY in the current perspective."
-      (equal (oref entry perspective) (persp-current-name)))
-
-    (cl-defmethod context--equal ((self context-persp) (other context-persp))
-      "Check if SELF and OTHER are approximately equal."
-      (and
-       (equal (oref self perspective) (oref other perspective))
-       (equal (oref self filename) (oref other filename))
-       (equal (oref self position) (oref other position))))
-
-    (cl-defmethod context--jump ((self context-persp))
-      "Jump Point to buffer, perspective and position in SELF."
-      (with-slots (buffer perspective overlay) self
-        (persp-switch perspective)
-        (if gumshoe-prefer-same-window
-            (pop-to-buffer-same-window buffer)
-          (pop-to-buffer buffer))
-        (let ((position (overlay-start overlay)))
-          (goto-char position)))))
-  (add-hook 'persp-mode-hook #'context-persp-load))
 
 (cl-defmethod context--cleanup ((self context))
   "Clean up resources (like overlays) held by SELF."

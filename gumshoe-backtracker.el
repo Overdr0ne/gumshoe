@@ -27,6 +27,7 @@
 (require 'cl-lib)
 (require 'context)
 (require 'gumshoe-lib)
+(require 'gumshoe-footprints)
 
 (defclass gumshoe--backtracker ()
   ((backlog :initform nil

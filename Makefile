@@ -9,7 +9,7 @@ CORE_SOURCES = context.el etree.el gumshoe-lib.el gumshoe-backtracker.el \
                gumshoe.el
 
 # Optional module files (may have external dependencies)
-OPTIONAL_SOURCES = gumshoe-tree.el gumshoe-persp.el gumshoe-completionist.el
+OPTIONAL_SOURCES = gumshoe-tree.el context-perspective.el gumshoe-persp.el gumshoe-completionist.el
 
 all: test-load test
 

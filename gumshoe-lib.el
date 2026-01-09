@@ -89,11 +89,12 @@ Set to nil if you would like all footprints displayed at once."
 
 (defcustom gumshoe-peruse-separator "|"
   "Separator to be used between gumshoe slots."
-  :type 'string)
+  :type 'string
+  :group 'gumshoe)
 
-(defcustom gumshoe-prefer-same-window nil
-  "Prefer jumping using the window where point currently is."
-  :type 'boolean)
+;; Obsolete alias for backward compatibility
+(define-obsolete-variable-alias 'gumshoe-prefer-same-window 'context-prefer-same-window "3.1"
+  "Use context-prefer-same-window instead.")
 
 (defface gumshoe--peruse-separator-face
   '((t

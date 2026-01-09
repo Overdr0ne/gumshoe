@@ -35,7 +35,7 @@
 ;; Note: gumshoe.el is already loaded when this file is required
 ;; (via with-eval-after-load), so no need to require it again
 (require 'perspective)
-(require 'context)
+(require 'context-perspective)
 
 (defcustom gumshoe-persp-auto-config t
   "Automatically set the backlog type to `context-persp’ if t."
