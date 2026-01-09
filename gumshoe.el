@@ -46,18 +46,21 @@
 
 (defcustom gumshoe-auto-cancel-backtracking-p t
   "Automatically cancel backtracking when non-backtracking commands are entered."
-  :type 'boolean)
+  :type 'boolean
+  :group 'gumshoe)
 
 (defcustom gumshoe-display-buffer-action '((display-buffer-reuse-window display-buffer-same-window))
   "`display-buffer-action' to use when jumping through the backlog.
 
 See `display-buffer' for more information"
-  :type 'list)
+  :type '(alist :key-type symbol :value-type sexp)
+  :group 'gumshoe)
 
 (defcustom gumshoe-backlog-type 'ring
   "The data structure holding the backlog."
   :type '(radio (const :tag "The backlog is organized into a ring buffer." ring)
-                (const :tag "The backlog is organized into a tree of timelines." tree)))
+                (const :tag "The backlog is organized into a tree of timelines." tree))
+  :group 'gumshoe)
 
 (defun gumshoe--backlog-init (log-len)
   "Create a new backlog based on `gumshoe-backlog-type'.
@@ -76,7 +79,8 @@ LOG-LEN is the maximum number of entries for ring-based backlogs."
 
 (defcustom gumshoe-mode nil
   "Contains global data for gumshoe-mode."
-  :type 'gumshoe--mode)
+  :type 'gumshoe--mode
+  :group 'gumshoe)
 
 (cl-defmethod gumshoe--init ((self gumshoe--mode))
   "Initialize SELF, setting hooks and timers."
@@ -226,6 +230,7 @@ If the previous entry has been cleaned or wrapped, notify and start at earliest 
   "A transient global mode to start Gumshoe backtracking."
   :global t
   :keymap global-gumshoe-backtracking-mode-map
+  :group 'gumshoe
   (if global-gumshoe-backtracking-mode
       (progn
         (when gumshoe-auto-cancel-backtracking-p

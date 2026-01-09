@@ -52,7 +52,8 @@ This must be set manually because overlays cannot be garbage collected.")   )
 
 (defcustom context-horizontal-scale 4
   "Horizontal follow distances are divided by this factor."
-  :type 'integer)
+  :type 'integer
+  :group 'gumshoe)
 
 (cl-defmethod context--valid-p ((self context))
   "Return t if SELF is valid."
