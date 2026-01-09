@@ -25,6 +25,27 @@
 ;;; Code:
 
 (require 'context)
+(require 'cl-generic)
+
+;; Generic methods for backlog implementations (ring and tree)
+(cl-defgeneric gumshoe--clean (backlog)
+  "Cleanup dead entries from BACKLOG.")
+
+(cl-defgeneric gumshoe--clean-recent (backlog)
+  "Cleanup recent dead entries from BACKLOG.")
+
+(cl-defgeneric gumshoe--construct-timeline (backlog)
+  "Construct timeline from BACKLOG.")
+
+(cl-defgeneric gumshoe--log-if-necessary (backlog &optional alarmp)
+  "Check current position and log in BACKLOG if significant.
+Log automatically if ALARMP is t.")
+
+(cl-defgeneric gumshoe--log (backlog)
+  "Manually log current position in BACKLOG as a marker.")
+
+(cl-defgeneric gumshoe--add-entry (backlog entry)
+  "Add ENTRY to BACKLOG.")
 
 (defgroup gumshoe nil
   "The gumshoe movement tracker."

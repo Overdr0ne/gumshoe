@@ -28,7 +28,7 @@ test-load:
 		  (require 'gumshoe-footprints) \
 		  (require 'gumshoe-peruse) \
 		  (require 'gumshoe-ring) \
-		  (ignore-errors (require 'gumshoe-tree)) \
+		  (require 'gumshoe-tree) \
 		  (ignore-errors (require 'gumshoe-persp)) \
 		  (ignore-errors (require 'gumshoe-completionist)) \
 		  (require 'gumshoe) \

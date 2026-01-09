@@ -1,4 +1,27 @@
-(require 'dash)
+;;; gumshoe-tree.el --- Tree-based backlog implementation -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2025 overdr0ne
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+;; Tree-based backlog implementation for gumshoe.
+;; Requires the dash library.
+
+;;; Code:
+
+;; (require 'dash)
 (require 'etree)
 (require 'cl-generic)
 (require 'context)
@@ -105,9 +128,5 @@ Log automatically if ALARMP is t."
       (oset new-entry category "marker")
       (gumshoe--add-entry self new-entry))))
 
-(defun gumshoe--backlog-init (log-len)
-  "Create a new etree--tree backlog.
-LOG-LEN is ignored for tree implementation."
-  (etree--tree))
-
 (provide 'gumshoe-tree)
+;;; gumshoe-tree.el ends here
