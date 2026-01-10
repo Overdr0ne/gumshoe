@@ -1,9 +1,13 @@
 ;;; etree.el --- A library for working with trees    -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Sam
+;; Copyright (C) 2025 overdr0ne
 
-;; Author: Sam <scmorris.dev@gmail.com>
+;; Author: overdr0ne
+;; Version: 3.1
+;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: internal, convenience, convenience
+;; URL: https://github.com/Overdr0ne/gumshoe
+
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

@@ -1,9 +1,12 @@
 ;;; context.el --- library for storing and interacting with meta-data on user context  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Sam
+;; Copyright (C) 2021 overdr0ne
 
-;; Author: Sam <scmorris.dev@gmail.com>
+;; Author: overdr0ne
+;; Version: 3.1
+;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: tools
+;; URL: https://github.com/Overdr0ne/gumshoe
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

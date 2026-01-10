@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 overdr0ne
 
 ;; Author: overdr0ne
-;; Version: 2.0
+;; Version: 3.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: tools
 ;; URL: https://github.com/Overdr0ne/gumshoe
