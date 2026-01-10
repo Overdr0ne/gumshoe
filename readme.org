@@ -70,6 +70,8 @@
    - *gumshoe-peruse-markers* - Browse manually dropped markers
    - Customize *gumshoe-slot-schema* to specify which fields are displayed and in what order (default: ~'(time buffer position line)~).
    - Make your own peruse commands by providing a filter predicate to ~gumshoe--peruse~.
+** Consult Integration
+   This package also includes extentions for peruse* commands with [[https://github.com/minad/consult][Consult]] to provide live previews of markers as you are perusing the backlog. These commands have the same interface described above, just prefixed with `consult-`, e.g. `consult-gumshoe-peruse-in-buffer`.
 ** Manual Markers
    You may manually drop a marker at any time with *gumshoe-drop-marker*. These markers can be navigated independently with *gumshoe-marker-backtrack* and *gumshoe-peruse-markers*.
 
