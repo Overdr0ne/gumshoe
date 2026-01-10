@@ -35,7 +35,12 @@ Pre-filter results with OBJ-FILTER."
 			                   format-schema
 			                   (propertize ")" 'face 'gumshoe--peruse-separator-face) ": "))
          (candidates (gumshoe--filter-format-objs objs slot-spec obj-filter))
-         (candidate (completing-read prompt candidates)))
+         ;; Create completion table with metadata to preserve time-based order
+         (collection (lambda (string pred action)
+                       (if (eq action 'metadata)
+                           '(metadata (display-sort-function . identity))
+                         (complete-with-action action candidates string pred))))
+         (candidate (completing-read prompt collection)))
     (context--jump (cdr (assoc candidate candidates)))))
 
 (provide 'gumshoe-peruse)
