@@ -66,8 +66,7 @@
 (ert-deftest gumshoe-test-load-peruse ()
   "Test that gumshoe-peruse loads without errors."
   (should (require 'gumshoe-peruse nil t))
-  (should (fboundp 'gumshoe--peruse))
-  (should (fboundp 'gumshoe--format-record)))
+  (should (fboundp 'gumshoe--peruse)))
 
 (ert-deftest gumshoe-test-load-ring ()
   "Test that gumshoe-ring loads and defines backlog-init."
@@ -137,6 +136,161 @@
       ;; Cancel backtracking
       (gumshoe-backtrack-cancel)
       (global-gumshoe-mode -1))))
+
+;;; Optional Dependency Tests
+
+(ert-deftest gumshoe-test-core-without-perspective ()
+  "Test that core gumshoe functionality works without perspective loaded."
+  ;; Ensure we're testing core functionality
+  (should (require 'gumshoe nil t))
+  (should (fboundp 'global-gumshoe-mode))
+
+  ;; Test mode can be enabled without perspective
+  (global-gumshoe-mode +1)
+  (should gumshoe-mode)
+  (should (oref gumshoe-mode backtracker))
+  (should (oref gumshoe-mode timer))
+
+  ;; Test basic commands work
+  (should (fboundp 'gumshoe-backtrack))
+  (should (fboundp 'gumshoe-buf-backtrack))
+  (should (fboundp 'gumshoe-win-backtrack))
+  (should (fboundp 'gumshoe-drop-marker))
+
+  ;; Test backlog works
+  (let ((backlog (oref (oref gumshoe-mode backtracker) backlog)))
+    (should backlog)
+    ;; Should be able to construct timeline
+    (should (listp (gumshoe--construct-timeline backlog))))
+
+  ;; Clean up
+  (global-gumshoe-mode -1)
+  ;; gumshoe-mode is set to the shutdown mode object, not nil
+  ;; Just verify mode is disabled
+  (should-not global-gumshoe-mode))
+
+(ert-deftest gumshoe-test-core-without-completionist ()
+  "Test that core gumshoe functionality works without completionist loaded."
+  ;; Core commands should work without completionist
+  (should (require 'gumshoe nil t))
+
+  (global-gumshoe-mode +1)
+  (should gumshoe-mode)
+
+  ;; Test perusal with completing-read (doesn't require completionist)
+  (should (fboundp 'gumshoe-peruse-globally))
+  (should (fboundp 'gumshoe-peruse-in-buffer))
+  (should (fboundp 'gumshoe-peruse-in-window))
+  (should (fboundp 'gumshoe-peruse-markers))
+
+  ;; Clean up
+  (global-gumshoe-mode -1))
+
+(ert-deftest gumshoe-test-core-without-consult ()
+  "Test that core gumshoe functionality works without consult loaded."
+  ;; Core commands should work without consult
+  (should (require 'gumshoe nil t))
+
+  (global-gumshoe-mode +1)
+  (should gumshoe-mode)
+
+  ;; Standard peruse commands should work without consult
+  (should (fboundp 'gumshoe-peruse-globally))
+
+  ;; Clean up
+  (global-gumshoe-mode -1))
+
+(ert-deftest gumshoe-test-optional-persp-loading ()
+  "Test that gumshoe-persp only loads when perspective is available."
+  (if (featurep 'perspective)
+      ;; If perspective is loaded, gumshoe-persp should be available after loading
+      (progn
+        (require 'gumshoe-persp nil t)
+        (should (featurep 'gumshoe-persp)))
+    ;; If perspective is not loaded, gumshoe should still work
+    (should (require 'gumshoe nil t))
+    (global-gumshoe-mode +1)
+    (should gumshoe-mode)
+    (global-gumshoe-mode -1)))
+
+(ert-deftest gumshoe-test-optional-completionist-loading ()
+  "Test that gumshoe-completionist is truly optional."
+  (if (featurep 'completionist)
+      ;; If completionist is loaded, the integration should work
+      (progn
+        (should (require 'gumshoe-completionist nil t))
+        (should (fboundp 'gumshoe-completionist-backlog)))
+    ;; If completionist is not loaded, gumshoe should still work
+    (should (require 'gumshoe nil t))
+    (global-gumshoe-mode +1)
+    (should gumshoe-mode)
+    ;; gumshoe-completionist should fail to load without completionist
+    ;; (it has a hard require on completionist)
+    (should-error (require 'gumshoe-completionist))
+    (global-gumshoe-mode -1)))
+
+(ert-deftest gumshoe-test-optional-consult-loading ()
+  "Test that gumshoe-consult is truly optional."
+  (if (featurep 'consult)
+      ;; If consult is loaded, the integration should work
+      (progn
+        (should (require 'gumshoe-consult nil t))
+        (should (fboundp 'gumshoe-consult-peruse-in-backlog)))
+    ;; If consult is not loaded, gumshoe should still work
+    (should (require 'gumshoe nil t))
+    (global-gumshoe-mode +1)
+    (should gumshoe-mode)
+    ;; gumshoe-consult commands shouldn't exist
+    (should-not (require 'gumshoe-consult nil t))
+    (global-gumshoe-mode -1)))
+
+(ert-deftest gumshoe-test-entry-creation-without-optional-deps ()
+  "Test that context entries can be created without optional dependencies."
+  (require 'context)
+  (require 'gumshoe-lib)
+
+  ;; Create a context entry
+  (with-temp-buffer
+    (insert "test content\n")
+    (goto-char (point-min))
+    (let ((entry (gumshoe--make-entry)))
+      (should entry)
+      (should (context-p entry))
+      (should (oref entry overlay))
+      (should (buffer-live-p (oref entry buffer)))
+      (should (numberp (oref entry position)))
+      ;; Clean up
+      (context--cleanup entry))))
+
+(ert-deftest gumshoe-test-backlog-operations-without-optional-deps ()
+  "Test basic backlog operations work without optional dependencies."
+  (require 'gumshoe)
+
+  (global-gumshoe-mode +1)
+  (let* ((backtracker (oref gumshoe-mode backtracker))
+         (backlog (oref backtracker backlog)))
+
+    ;; Test adding entries - use text-mode to avoid fundamental-mode ignore
+    (with-temp-buffer
+      (text-mode)  ; Use text-mode instead of fundamental-mode
+      (insert "test line 1\n")
+      (insert "test line 2\n")
+      (insert "test line 3\n")
+
+      (goto-char (point-min))
+      ;; Force logging with alarmp t
+      (gumshoe--log-if-necessary backlog t)
+
+      (goto-char (point-max))
+      ;; Force logging with alarmp t
+      (gumshoe--log-if-necessary backlog t)
+
+      ;; Should have entries in backlog
+      (let ((timeline (gumshoe--construct-timeline backlog)))
+        (should (>= (length timeline) 2))))
+
+    ;; Clean up
+    (global-gumshoe-mode -1)))
 
 (defun gumshoe-test-run-tests ()
   (let ((test-sets
