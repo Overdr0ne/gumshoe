@@ -11,7 +11,7 @@ CORE_SOURCES = context.el etree.el gumshoe-lib.el gumshoe-backtracker.el \
 # Optional module files (may have external dependencies)
 OPTIONAL_SOURCES = gumshoe-tree.el
 
-all: test-load compile-test test
+all: test-load compile-test install-test test
 
 deps:
 	$(emacs) -batch -l targets/install-deps.el
@@ -54,6 +54,11 @@ compile-test:
 		echo "PASS: All core files compile cleanly"; \
 	fi
 
+install-test:
+	@echo "Testing package installation (simulates MELPA)..."
+	@echo "This reproduces the exact scenario from issue #22"
+	@$(emacs) -Q --batch -l test-package-install.el
+
 plain:
 	$(emacs) --version
 	$(emacs) -Q -l elpa.el
@@ -61,4 +66,4 @@ plain:
 clean:
 	$(RM) *.elc
 
-.PHONY: all test test-load checkdoc compile compile-test plain deps clean
+.PHONY: all test test-load checkdoc compile compile-test install-test plain deps clean
