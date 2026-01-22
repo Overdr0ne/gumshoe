@@ -39,12 +39,6 @@ test:
 checkdoc:
 	$(emacs) -batch -l targets/checkdoc.el
 
-compile:
-	@echo "Byte-compiling core source files..."
-	$(emacs) -batch -l elpa.el -L . -f batch-byte-compile $(CORE_SOURCES)
-	@echo "Attempting to compile optional modules (may fail if deps missing)..."
-	-@$(emacs) -batch -l elpa.el -L . -f batch-byte-compile $(OPTIONAL_SOURCES) 2>/dev/null || true
-
 compile-test:
 	@echo "Testing that core files compile without errors..."
 	@if $(emacs) -Q --batch -L . -f batch-byte-compile $(CORE_SOURCES) 2>&1 | grep -iE "(error|warning)"; then \
@@ -66,4 +60,4 @@ plain:
 clean:
 	$(RM) *.elc
 
-.PHONY: all test test-load checkdoc compile compile-test install-test plain deps clean
+.PHONY: all test test-load checkdoc compile-test install-test plain deps clean
