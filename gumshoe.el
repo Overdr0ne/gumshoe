@@ -285,9 +285,5 @@ Results will be filtered using FILTER-NAME function."
 (make-obsolete 'gumshoe-win-backtrack-back 'gumshoe-win-backtrack "3.0")
 (make-obsolete 'gumshoe-win-backtrack-forward 'gumshoe-win-backtrack "3.0")
 
-;;; Perspective integration
-(with-eval-after-load 'perspective
-  (require 'gumshoe-persp))
-
 (provide 'gumshoe)
 ;;; gumshoe.el ends here
