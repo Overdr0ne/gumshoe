@@ -11,7 +11,7 @@ CORE_SOURCES = context.el etree.el gumshoe-lib.el gumshoe-backtracker.el \
 # Optional module files (may have external dependencies)
 OPTIONAL_SOURCES = gumshoe-tree.el
 
-all: test-load test
+all: test-load compile-test test
 
 deps:
 	$(emacs) -batch -l targets/install-deps.el
@@ -45,6 +45,15 @@ compile:
 	@echo "Attempting to compile optional modules (may fail if deps missing)..."
 	-@$(emacs) -batch -l elpa.el -L . -f batch-byte-compile $(OPTIONAL_SOURCES) 2>/dev/null || true
 
+compile-test:
+	@echo "Testing that core files compile without errors..."
+	@if $(emacs) -Q --batch -L . -f batch-byte-compile $(CORE_SOURCES) 2>&1 | grep -iE "(error|warning)"; then \
+		echo "FAIL: Compilation errors or warnings found"; \
+		exit 1; \
+	else \
+		echo "PASS: All core files compile cleanly"; \
+	fi
+
 plain:
 	$(emacs) --version
 	$(emacs) -Q -l elpa.el
@@ -52,4 +61,4 @@ plain:
 clean:
 	$(RM) *.elc
 
-.PHONY: all test test-load checkdoc compile plain deps clean
+.PHONY: all test test-load checkdoc compile compile-test plain deps clean
