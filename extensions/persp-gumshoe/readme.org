@@ -1,0 +1,65 @@
+#+title: persp-gumshoe
+
+Perspective.el integration for [[https://github.com/Overdr0ne/gumshoe][gumshoe]].
+
+* Overview
+
+This package extends gumshoe's point movement tracking to include perspective information from [[https://github.com/nex3/perspective-el][perspective.el]]. With persp-gumshoe, you can backtrack through your movement history within specific perspectives, making it easier to navigate complex multi-perspective workflows.
+
+* Installation
+
+** MELPA
+
+#+begin_src elisp
+(use-package persp-gumshoe
+  :after (gumshoe perspective)
+  :config
+  (require 'persp-gumshoe))
+#+end_src
+
+** straight.el
+
+#+begin_src elisp
+(use-package persp-gumshoe
+  :straight (persp-gumshoe :type git :host github :repo "Overdr0ne/gumshoe"
+                           :files ("extensions/persp-gumshoe/*.el"))
+  :after (gumshoe perspective)
+  :config
+  (require 'persp-gumshoe))
+#+end_src
+
+* Dependencies
+
+- Emacs 27.1+
+- [[https://github.com/Overdr0ne/gumshoe][gumshoe]] 4.0+
+- [[https://github.com/nex3/perspective-el][perspective]] 2.0+
+
+* Usage
+
+Simply require the package after loading gumshoe and perspective:
+
+#+begin_src elisp
+(require 'persp-gumshoe)
+#+end_src
+
+This will automatically:
+- Configure gumshoe to track perspective information
+- Add perspective-aware backtracking commands
+
+** Commands
+
+- =gumshoe-persp-backtrack= - Backtrack through entries in the current perspective
+- =gumshoe-peruse-in-persp= - Browse entries in the current perspective with completion
+
+* How It Works
+
+persp-gumshoe provides:
+
+1. *persp-context.el* - Defines =context-persp=, a subclass of gumshoe's =context= that includes perspective information
+2. *persp-gumshoe.el* - Configures gumshoe to use perspective-aware contexts and provides perspective-scoped commands
+
+When you jump to an entry in a different perspective, persp-gumshoe automatically switches to that perspective before jumping to the location.
+
+* License
+
+GPL-3.0-or-later
