@@ -1,9 +1,11 @@
-;;; gumshoe-lib.el --- helper functions for gumshoe  -*- lexical-binding: t; -*-
+;;; gumshoe-lib.el --- Helper functions for gumshoe  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025  Samuel Morris
 
 ;; Author: Samuel Morris <scmorris.dev@gmail.com>
-;; Keywords: lisp
+;; Version: 4.0
+;; Keywords: tools
+;; URL: https://github.com/Overdr0ne/gumshoe
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -20,7 +22,8 @@
 
 ;;; Commentary:
 
-;; 
+;; Shared configuration, customization variables, faces, and utility
+;; functions used by all gumshoe modules.
 
 ;;; Code:
 

@@ -3,7 +3,9 @@
 ;; Copyright (C) 2025 overdr0ne
 
 ;; Author: overdr0ne
+;; Version: 4.0
 ;; Keywords: tools
+;; URL: https://github.com/Overdr0ne/gumshoe
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
