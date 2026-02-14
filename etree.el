@@ -3,8 +3,8 @@
 ;; Copyright (C) 2025 overdr0ne
 
 ;; Author: overdr0ne
-;; Version: 3.1
-;; Package-Requires: ((emacs "25.1"))
+;; Version: 4.0
+;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: internal, convenience, convenience
 ;; URL: https://github.com/Overdr0ne/gumshoe
 
