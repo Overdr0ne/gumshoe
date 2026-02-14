@@ -5,9 +5,8 @@
 ;; Author: overdr0ne
 ;; Version: 4.0
 ;; Package-Requires: ((emacs "27.1"))
-;; Keywords: internal, convenience, convenience
+;; Keywords: internal, convenience
 ;; URL: https://github.com/Overdr0ne/gumshoe
-
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -68,28 +67,23 @@ that require cleanup (e.g., overlays, processes, buffers)."
       (let* ((current (oref self current)))
         (oset current children (cons new (oref current children)))
         (oset new parent current)
-        (oset self current new)
-        )))
-  self
-  )
+        (oset self current new))))
+  self)
 
 (cl-defmethod etree--preorder ((self etree--tree))
-  (let* (
-         (stk (list (oref self root)))
+  (let* ((stk (list (oref self root)))
          (preorder nil)
          (i 0)
-         iter
-         )
+         iter)
     (while stk
       (setq iter (pop stk))
       (push iter preorder)
       (dolist (child (oref iter children)) (setf stk (cons child stk)))
       (cl-incf i))
-    preorder)  )
+    preorder))
 
 (cl-defmethod etree--dfs ((self etree--tree) (key etree--node))
-  (let* (
-         (stk (list (oref self root)))
+  (let* ((stk (list (oref self root)))
          (i 0)
          iter
          (continuep t)

@@ -232,6 +232,7 @@ at the earliest available entry."
   :global t
   :keymap global-gumshoe-backtracking-mode-map
   :group 'gumshoe
+  :require 'gumshoe
   (if global-gumshoe-backtracking-mode
       (progn
         (when gumshoe-auto-cancel-backtracking-p

@@ -61,8 +61,7 @@
         (if (gumshoe--dead-p iter)
             (etree--remove self iter)
           (setq continuep nil))
-        (setq iter (oref self current)))
-      )))
+        (setq iter (oref self current))))))
 
 (cl-defmethod gumshoe--dead-p ((self etree--node))
   (if self
@@ -73,8 +72,7 @@
     (gumshoe--clean-recent self)
     (gumshoe--clean-root self)
     (mapc #'etree--delete
-          (etree--collect self 'gumshoe--dead-p)))
-  )
+          (etree--collect self 'gumshoe--dead-p))))
 
 (cl-defmethod gumshoe--remove-footprint-entry ((self etree--tree) footprint)
   "Remove FOOTPRINT entry from SELF."
