@@ -1,4 +1,4 @@
-;;; context.el --- library for storing and interacting with meta-data on user context  -*- lexical-binding: t; -*-
+;;; context.el --- User context metadata storage and retrieval  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021 overdr0ne
 
@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;; This is a library for storinng and using and manipulating data on user context
+;; This is a library for storing and manipulating data on user context.
 
 ;;; Code:
 
