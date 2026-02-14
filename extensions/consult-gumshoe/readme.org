@@ -1,0 +1,73 @@
+#+title: consult-gumshoe
+#+author: overdr0ne
+
+Consult integration for [[https://github.com/Overdr0ne/gumshoe][gumshoe]] with live preview.
+
+* Overview
+
+This package provides [[https://github.com/minad/consult][consult]] integration for gumshoe, enabling live preview as you browse through your movement history. As you navigate through backlog entries in the minibuffer, gumshoe automatically jumps to each location so you can preview it before making a selection.
+
+* Installation
+
+** MELPA
+
+#+begin_src elisp
+(use-package consult-gumshoe
+  :after (gumshoe consult))
+#+end_src
+
+** straight.el
+
+#+begin_src elisp
+(use-package consult-gumshoe
+  :straight (consult-gumshoe :type git :host github :repo "Overdr0ne/gumshoe"
+                             :files ("extensions/consult-gumshoe/*.el"))
+  :after (gumshoe consult))
+#+end_src
+
+* Dependencies
+
+- Emacs 27.1+
+- [[https://github.com/Overdr0ne/gumshoe][gumshoe]] 4.0+
+- [[https://github.com/minad/consult][consult]] 0.35+
+
+* Usage
+
+** Commands
+
+All commands provide live preview as you navigate:
+
+- ~consult-gumshoe-peruse-in-backlog~ - Browse all backlog entries
+- ~consult-gumshoe-peruse-in-buffer~ - Browse entries in the current buffer
+- ~consult-gumshoe-peruse-in-window~ - Browse entries in the current window
+- ~consult-gumshoe-peruse-markers~ - Browse manually dropped markers
+
+** Example Configuration
+
+#+begin_src elisp
+(use-package consult-gumshoe
+  :after (gumshoe consult)
+  :bind (("C-c g g" . consult-gumshoe-peruse-in-backlog)
+         ("C-c g b" . consult-gumshoe-peruse-in-buffer)
+         ("C-c g w" . consult-gumshoe-peruse-in-window)
+         ("C-c g m" . consult-gumshoe-peruse-markers)))
+#+end_src
+
+* Features
+
+- *Live Preview* - Automatically jumps to each entry as you navigate through the list
+- *Restore on Cancel* - Returns to your original position if you cancel the selection
+- *Time-Ordered* - Preserves chronological order of entries
+- *Filtered Views* - Scope to buffer, window, or markers
+
+* How It Works
+
+consult-gumshoe uses consult's preview state mechanism to:
+
+1. Save your current position when you start browsing
+2. Jump to each entry as you navigate with =C-n=/=C-p= or search
+3. Either stay at the selected entry (on =RET=) or restore your original position (on =C-g=)
+
+* License
+
+GPL-3.0-or-later
