@@ -48,7 +48,7 @@
      - *gumshoe-buf-backtrack* - Navigate entries only in the current buffer
      - *gumshoe-win-backtrack* - Navigate entries only in the current window
      - *gumshoe-marker-backtrack* - Navigate only manually dropped markers
-   - [[https://github.com/nex3/perspective-el][Perspective.el]] integration: Install [[https://github.com/Overdr0ne/persp-gumshoe][persp-gumshoe]] for perspective-aware backtracking with *gumshoe-persp-backtrack*.
+   - [[https://github.com/nex3/perspective-el][Perspective.el]] integration available via =persp-gumshoe= (see [[*Extensions]]).
    - Gumshoe activates *global-gumshoe-backtracking-mode* during backtracking. Leave this mode with *keyboard-quit* (usually *C-g*).
    - Additional backtracking commands (while in backtracking mode):
      - *C-r* (*gumshoe-backtrack-restart*) - Reset to the latest (most recent) entry in the backlog while staying in backtracking mode
@@ -66,22 +66,15 @@
    - *gumshoe-peruse-globally* - Browse all entries via completing-read
    - *gumshoe-peruse-in-buffer* - Browse entries in current buffer
    - *gumshoe-peruse-in-window* - Browse entries in current window
-   - *gumshoe-peruse-in-persp* - Browse entries in current perspective (when perspective.el is loaded)
    - *gumshoe-peruse-markers* - Browse manually dropped markers
    - Customize *gumshoe-slot-schema* to specify which fields are displayed and in what order (default: ~'(time buffer position line)~).
    - Make your own peruse commands by providing a filter predicate to ~gumshoe--peruse~.
-** Consult Integration
-   Install [[https://github.com/Overdr0ne/consult-gumshoe][consult-gumshoe]] for [[https://github.com/minad/consult][Consult]]-powered live previews while perusing the backlog. These commands have the same interface described above, just prefixed with =consult-=, e.g. =consult-gumshoe-peruse-in-buffer=.
 ** Manual Markers
    You may manually drop a marker at any time with *gumshoe-drop-marker*. These markers can be navigated independently with *gumshoe-marker-backtrack* and *gumshoe-peruse-markers*.
 
 * Change log
 ** 4.0
-   - Extracted external dependencies into separate packages to avoid any conditional loading. For users:
-  1. *Perspective users*: Install [[https://github.com/Overdr0ne/persp-gumshoe][persp-gumshoe]] and add ~(require 'persp-gumshoe)~
-  2. *Consult users*: Install [[https://github.com/Overdr0ne/consult-gumshoe][consult-gumshoe]] and add ~(require 'consult-gumshoe)~
-
-  All existing commands and functionality remain the same; they've just been moved to dedicated packages.
+   - Extracted optional integrations into separate packages under =extensions/= to avoid conditional loading.  See [[*Extensions]].
 ** 3.1
    - Abstracted backlog implementation: Users can now choose between ring (circular buffer) and tree (branching timeline) via ~gumshoe-backlog-type~.
    - Unified command interface: Backtracking commands now enter a transient mode (~global-gumshoe-backtracking-mode~) where movement keys navigate the timeline. No more separate -back/-forward commands.
@@ -118,26 +111,9 @@
   - works ootb without much configuration or dependency on external packages
   Packages above may have one or two of these features, but changes on the order of a complete rewrite would be required to make them work like gumshoe. But comments are totally welcome if you’d like to open an issue.
 
-* Optional Integrations
-  As of version 4.0, optional integrations have been moved to separate packages to avoid compilation errors when optional dependencies are not installed.
-
-** perspective.el Integration
-   Install [[https://github.com/Overdr0ne/persp-gumshoe][persp-gumshoe]] for perspective-aware backtracking:
-   #+begin_src elisp
-     (use-package persp-gumshoe
-       :after (gumshoe perspective)
-       :config
-       (require 'persp-gumshoe))
-   #+end_src
-
-** consult Integration
-   Install [[https://github.com/Overdr0ne/consult-gumshoe][consult-gumshoe]] for live preview while browsing:
-   #+begin_src elisp
-     (use-package consult-gumshoe
-       :after (gumshoe consult)
-       :bind (("C-c g g" . consult-gumshoe-peruse-in-backlog)
-              ("C-c g b" . consult-gumshoe-peruse-in-buffer)))
-   #+end_src
+* Extensions
+  - [[file:extensions/persp-gumshoe/readme.org][persp-gumshoe]]
+  - [[file:extensions/consult-gumshoe/readme.org][consult-gumshoe]]
 
 * Migration from gumshoe 3.x
 
