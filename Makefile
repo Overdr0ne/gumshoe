@@ -11,7 +11,7 @@ CORE_SOURCES = context.el etree.el gumshoe-lib.el gumshoe-backtracker.el \
 # Optional module files (may have external dependencies)
 OPTIONAL_SOURCES = gumshoe-tree.el
 
-all: test-load compile-test install-test test
+all: test-load compile-test install-test checkdoc test
 
 deps:
 	$(emacs) -batch -l targets/install-deps.el
