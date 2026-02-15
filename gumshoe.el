@@ -126,12 +126,12 @@ When enabled, Gumshoe logs point movements when they exceed the
 (make-obsolete 'global-gumshoe-buf-mode 'global-gumshoe-mode "2.0")
 
 ;;; Backtracking mode movement commands
-(defun global-gumshoe-backtracking-mode-back ()
+(defun gumshoe-backtracking-back ()
   "Backtrack back in the Gumshoe backlog."
   (interactive)
   (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+))
 
-(defun global-gumshoe-backtracking-mode-forward ()
+(defun gumshoe-backtracking-forward ()
   "Backtrack forward in the Gumshoe backlog."
   (interactive)
   (gumshoe--backtrack (oref gumshoe-mode backtracker) #'-))
@@ -139,8 +139,8 @@ When enabled, Gumshoe logs point movements when they exceed the
 (defun gumshoe--backtracking-p ()
   "Was the last command a backtracking command?"
   (let ((backtracking-commands
-         '(global-gumshoe-backtracking-mode-back
-           global-gumshoe-backtracking-mode-forward
+         '(gumshoe-backtracking-back
+           gumshoe-backtracking-forward
            gumshoe-backtrack
            gumshoe-marker-backtrack
            gumshoe-buf-backtrack
@@ -210,17 +210,18 @@ at the earliest available entry."
                 (message "Previous backtrack position has been cleaned or wrapped. Starting at earliest entry.")))))))))
 
 ;;; Backtracking mode definition
-(defvar global-gumshoe-backtracking-mode-map
+(define-obsolete-variable-alias 'global-gumshoe-backtracking-mode-map 'gumshoe-backtracking-mode-map "4.0")
+(defvar gumshoe-backtracking-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [remap keyboard-quit] 'gumshoe-backtrack-quit)
-    (define-key map [remap gumshoe-backtrack-back] 'global-gumshoe-backtracking-mode-back)
-    (define-key map [remap gumshoe-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
-    (define-key map [remap gumshoe-buf-backtrack-back] 'global-gumshoe-backtracking-mode-back)
-    (define-key map [remap gumshoe-buf-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
-    (define-key map [remap gumshoe-win-backtrack-back] 'global-gumshoe-backtracking-mode-back)
-    (define-key map [remap gumshoe-win-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
-    (define-key map [remap backward-paragraph] 'global-gumshoe-backtracking-mode-back)
-    (define-key map [remap forward-paragraph] 'global-gumshoe-backtracking-mode-forward)
+    (define-key map [remap gumshoe-backtrack-back] 'gumshoe-backtracking-back)
+    (define-key map [remap gumshoe-backtrack-forward] 'gumshoe-backtracking-forward)
+    (define-key map [remap gumshoe-buf-backtrack-back] 'gumshoe-backtracking-back)
+    (define-key map [remap gumshoe-buf-backtrack-forward] 'gumshoe-backtracking-forward)
+    (define-key map [remap gumshoe-win-backtrack-back] 'gumshoe-backtracking-back)
+    (define-key map [remap gumshoe-win-backtrack-forward] 'gumshoe-backtracking-forward)
+    (define-key map [remap backward-paragraph] 'gumshoe-backtracking-back)
+    (define-key map [remap forward-paragraph] 'gumshoe-backtracking-forward)
     (define-key map (kbd "C-c") 'gumshoe-backtrack-cancel)
     (define-key map (kbd "C-r") 'gumshoe-backtrack-restart)
     (define-key map (kbd "C-v") 'gumshoe-backtrack-resume)
@@ -230,7 +231,7 @@ at the earliest available entry."
 (define-minor-mode global-gumshoe-backtracking-mode
   "A transient global mode to start Gumshoe backtracking."
   :global t
-  :keymap global-gumshoe-backtracking-mode-map
+  :keymap gumshoe-backtracking-mode-map
   :group 'gumshoe
   :require 'gumshoe
   (if global-gumshoe-backtracking-mode
@@ -238,7 +239,7 @@ at the earliest available entry."
         (when gumshoe-auto-cancel-backtracking-p
           (add-hook 'post-command-hook
                     #'gumshoe--auto-cancel-backtracking))
-        (push `(global-gumshoe-backtracking-mode . ,global-gumshoe-backtracking-mode-map)
+        (push `(global-gumshoe-backtracking-mode . ,gumshoe-backtracking-mode-map)
               minor-mode-map-alist))
     (setf minor-mode-map-alist (assoc-delete-all 'global-gumshoe-backtracking-mode minor-mode-map-alist))
     (when gumshoe-auto-cancel-backtracking-p
@@ -285,6 +286,8 @@ Results will be filtered using FILTER-NAME function."
 (make-obsolete 'gumshoe-buf-backtrack-forward 'gumshoe-buf-backtrack "3.0")
 (make-obsolete 'gumshoe-win-backtrack-back 'gumshoe-win-backtrack "3.0")
 (make-obsolete 'gumshoe-win-backtrack-forward 'gumshoe-win-backtrack "3.0")
+(define-obsolete-function-alias 'global-gumshoe-backtracking-mode-back 'gumshoe-backtracking-back "4.0")
+(define-obsolete-function-alias 'global-gumshoe-backtracking-mode-forward 'gumshoe-backtracking-forward "4.0")
 
 (provide 'gumshoe)
 ;;; gumshoe.el ends here

@@ -54,7 +54,7 @@
      - *C-r* (*gumshoe-backtrack-restart*) - Reset to the latest (most recent) entry in the backlog while staying in backtracking mode
      - *C-c* (*gumshoe-backtrack-cancel*) - Jump to the latest entry and quit backtracking
      - *C-v* (*gumshoe-backtrack-resume*) - Resume backtracking at the entry where you previously stopped. If never backtracked, starts at latest entry. If the previous entry was cleaned or wrapped, starts at earliest entry with notification
-   - Customize the backtracking keymap via *global-gumshoe-backtracking-mode-map*.
+   - Customize the backtracking keymap via *gumshoe-backtracking-mode-map*.
    - By default, Gumshoe marks "footprints" (overlays indicating entry points). Toggle *gumshoe-show-footprints-p* to disable them.
    - By default, backtracking auto-cancels when you type a non-backtracking command. Disable with ~(setf gumshoe-auto-cancel-backtracking-p nil)~.
    - Footprint strategy via *gumshoe-footprint-strategy*:

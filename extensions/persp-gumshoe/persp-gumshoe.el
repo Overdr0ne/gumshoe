@@ -55,8 +55,8 @@
 
 (make-obsolete 'gumshoe-persp-backtrack-back 'gumshoe-persp-backtrack "3.0")
 (make-obsolete 'gumshoe-persp-backtrack-forward 'gumshoe-persp-backtrack "3.0")
-(define-key global-gumshoe-backtracking-mode-map [remap gumshoe-persp-backtrack-forward] 'global-gumshoe-backtracking-mode-forward)
-(define-key global-gumshoe-backtracking-mode-map [remap gumshoe-persp-backtrack-back] 'global-gumshoe-backtracking-mode-back)
+(define-key gumshoe-backtracking-mode-map [remap gumshoe-persp-backtrack-forward] 'gumshoe-backtracking-forward)
+(define-key gumshoe-backtracking-mode-map [remap gumshoe-persp-backtrack-back] 'gumshoe-backtracking-back)
 
 (provide 'persp-gumshoe)
 ;;; persp-gumshoe.el ends here

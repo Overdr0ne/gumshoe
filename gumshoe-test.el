@@ -130,8 +130,8 @@
       (gumshoe-backtrack)
       (setf start (point))
       ;; Navigate back and forward
-      (global-gumshoe-backtracking-mode-back)
-      (global-gumshoe-backtracking-mode-forward)
+      (gumshoe-backtracking-back)
+      (gumshoe-backtracking-forward)
       (should (equal start (point)))
       ;; Cancel backtracking
       (gumshoe-backtrack-cancel)
