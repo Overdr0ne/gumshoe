@@ -35,7 +35,7 @@
 ;; Clients can specialize this for their own entry types if cleanup is needed
 (cl-defgeneric etree--cleanup (_entry)
   "Clean up resources held by ENTRY.
-Default implementation does nothing. Specialize this method for entry types
+Default implementation does nothing.  Specialize this method for entry types
 that require cleanup (e.g., overlays, processes, buffers)."
   nil)
 
@@ -60,6 +60,8 @@ that require cleanup (e.g., overlays, processes, buffers)."
   "A tree to keep track of the target’s movements as they move forward and backward in time.")
 
 (cl-defmethod etree--insert ((self etree--tree) (new etree--node))
+  "Insert NEW as a child of the current node in SELF.
+If the tree has no root, NEW becomes the root."
   (if (not self)
       (etree--tree self :root new :current new)
     (if (not (oref self root))
@@ -71,6 +73,7 @@ that require cleanup (e.g., overlays, processes, buffers)."
   self)
 
 (cl-defmethod etree--preorder ((self etree--tree))
+  "Return all nodes in SELF in preorder traversal."
   (let* ((stk (list (oref self root)))
          (preorder nil)
          (i 0)
@@ -83,6 +86,7 @@ that require cleanup (e.g., overlays, processes, buffers)."
     preorder))
 
 (cl-defmethod etree--dfs ((self etree--tree) (key etree--node))
+  "Search SELF for KEY using depth-first search.  Return t if found."
   (let* ((stk (list (oref self root)))
          (i 0)
          iter
@@ -109,6 +113,7 @@ that require cleanup (e.g., overlays, processes, buffers)."
       (oset child parent (oref self parent)))))
 
 (cl-defmethod etree--remove ((self etree--tree) (key etree--node))
+  "Remove KEY from SELF, reparenting its children."
   (when (eq key (oref self current))
     (oset self current (oref (oref self current) parent)))
   (when (eq key (oref self root))
@@ -116,6 +121,7 @@ that require cleanup (e.g., overlays, processes, buffers)."
   (etree--delete key))
 
 (cl-defmethod etree--mapc ((self etree--tree) f)
+  "Apply F to each node in SELF via preorder traversal."
   (let* ((stk (list (oref self root)))
          (preorder nil)
          (i 0)
@@ -129,6 +135,7 @@ that require cleanup (e.g., overlays, processes, buffers)."
     preorder))
 
 (cl-defmethod etree--collect ((self etree--tree) predicate)
+  "Collect nodes in SELF satisfying PREDICATE via preorder traversal."
   (let* ((stk (list (oref self root)))
          (preorder nil)
          (i 0)
