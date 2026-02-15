@@ -38,6 +38,7 @@
   (context--cleanup entry))
 
 (cl-defmethod gumshoe--clean-root ((self etree--tree))
+  "Remove dead entries from the root of SELF."
   (let* (
          (timeline (gumshoe--construct-timeline-nodes self))
          iter
@@ -52,7 +53,7 @@
   self)
 
 (cl-defmethod gumshoe--clean-recent ((self etree--tree))
-  "Cleanup recent dead entries from RING."
+  "Clean up recent dead entries from SELF."
   (unless (eq (oref self current) (oref self root))
     (let ((iter (oref self current))
           (continuep t))
@@ -64,10 +65,12 @@
         (setq iter (oref self current))))))
 
 (cl-defmethod gumshoe--dead-p ((self etree--node))
+  "Return t if SELF holds a dead entry."
   (if self
       (context--dead-p (oref self entry))
     t))
 (cl-defmethod gumshoe--clean ((self etree--tree))
+  "Remove all dead entries from SELF."
   (unless (eq (oref self current) (oref self root))
     (gumshoe--clean-recent self)
     (gumshoe--clean-root self)
@@ -81,29 +84,32 @@
     (delete-overlay footprint)))
 
 (cl-defmethod gumshoe--remove-footprint-entries-at ((self etree--tree) position)
+  "Remove footprint entries at POSITION from SELF."
   (when position
     (mapc (apply-partially #'gumshoe--remove-footprint-entry self)
           (gumshoe--footprints-at position))))
 
 ;;; filter predicates
 (cl-defmethod gumshoe--in-current-buffer-p ((self etree--node))
-  "Check if ENTRY in the current perspective."
+  "Check if SELF holds an entry in the current buffer."
   (let ((entry (oref self entry)))
     (equal (oref entry buffer) (current-buffer))))
 
 (cl-defmethod gumshoe--in-current-window-p ((self etree--node))
-  "Check if ENTRY in the current window."
+  "Check if SELF holds an entry in the current window."
   (let ((entry (oref self entry)))
     (equal (oref entry window) (get-buffer-window (current-buffer)))))
 
 (cl-defmethod gumshoe--construct-timeline-nodes ((self etree--tree))
+  "Return the path from root to current node in SELF."
   (etree--path self))
 (cl-defmethod gumshoe--construct-timeline ((self etree--tree))
+  "Return entries along the path from root to current node in SELF."
   (reverse (mapcar (lambda (node) (oref node entry))
                    (etree--path self))))
 
 (cl-defmethod gumshoe--add-entry ((self etree--tree) (entry context))
-  "Add ENTRY to SELF"
+  "Add ENTRY to SELF."
   (let* ((new-node (etree--node :entry entry)))
     (cl-assert (and new-node (object-of-class-p new-node 'etree--node)))
     (when (eq gumshoe-footprint-strategy 'delete-overlapping)
