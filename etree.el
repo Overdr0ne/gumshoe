@@ -149,7 +149,7 @@ If the tree has no root, NEW becomes the root."
     preorder))
 
 (cl-defmethod etree--path ((self etree--tree))
-  "Return the path from the root to the current node."
+  "Return the path from the root to the current node in SELF."
   (let (path
         (continuep t)
         (iter (oref self current)))

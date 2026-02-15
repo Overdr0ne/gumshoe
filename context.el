@@ -96,15 +96,15 @@ This must be set manually because overlays cannot be garbage collected.")   )
 
 ;;; filter predicates
 (cl-defmethod context--in-current-buffer-p ((entry context))
-  "Check if ENTRY in the current perspective."
+  "Check if ENTRY is in the current buffer."
   (equal (oref entry buffer) (current-buffer)))
 
 (cl-defmethod context--in-current-window-p ((entry context))
-  "Check if ENTRY in the current window."
+  "Check if ENTRY is in the current window."
   (equal (oref entry window) (get-buffer-window (current-buffer))))
 
 (cl-defmethod context--marker-context-p ((entry context))
-  "Check if ENTRY in the current window."
+  "Check if ENTRY is a marker."
   (equal (oref entry category) "marker"))
 
 (defun context--column-at (pos)

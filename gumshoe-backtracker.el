@@ -67,10 +67,10 @@ In particular, notify users if index would go outside log boundaries."
                         (- (length filtered) index)
                         (length filtered)))))))
 
-(cl-defmethod gumshoe--init-backtracking ((self gumshoe--backtracker) filter_)
-  "FILTER SELF, and reset slots to start backtracking."
+(cl-defmethod gumshoe--init-backtracking ((self gumshoe--backtracker) filter-pred)
+  "Initialize SELF for backtracking using FILTER-PRED as the filter predicate."
   (with-slots (backlog filter filtered msg index) self
-    (setf filter filter_)
+    (setf filter filter-pred)
     (gumshoe--clean backlog)
     (message "timeline %s" (gumshoe--construct-timeline backlog))
     (setf filtered

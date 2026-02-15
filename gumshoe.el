@@ -78,7 +78,7 @@ LOG-LEN is the maximum number of entries for ring-based backlogs."
   "Gumshoe mode information.")
 
 (defcustom gumshoe-mode nil
-  "Contains global data for gumshoe-mode."
+  "Contains global data for `gumshoe-mode'."
   :type 'gumshoe--mode
   :group 'gumshoe)
 
@@ -225,7 +225,7 @@ at the earliest available entry."
     (define-key map (kbd "C-r") 'gumshoe-backtrack-restart)
     (define-key map (kbd "C-v") 'gumshoe-backtrack-resume)
     map)
-  "Transient keymap activated during global-gumshoe-backtracking-mode.")
+  "Transient keymap activated during `global-gumshoe-backtracking-mode'.")
 
 (define-minor-mode global-gumshoe-backtracking-mode
   "A transient global mode to start Gumshoe backtracking."

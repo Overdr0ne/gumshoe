@@ -65,7 +65,7 @@
         (setq iter (oref self current))))))
 
 (cl-defmethod gumshoe--dead-p ((self etree--node))
-  "Return t if SELF holds a dead entry."
+  "Return t if SELF references a dead entry."
   (if self
       (context--dead-p (oref self entry))
     t))
@@ -91,12 +91,12 @@
 
 ;;; filter predicates
 (cl-defmethod gumshoe--in-current-buffer-p ((self etree--node))
-  "Check if SELF holds an entry in the current buffer."
+  "Check if SELF references an entry in the current buffer."
   (let ((entry (oref self entry)))
     (equal (oref entry buffer) (current-buffer))))
 
 (cl-defmethod gumshoe--in-current-window-p ((self etree--node))
-  "Check if SELF holds an entry in the current window."
+  "Check if SELF references an entry in the current window."
   (let ((entry (oref self entry)))
     (equal (oref entry window) (get-buffer-window (current-buffer)))))
 
