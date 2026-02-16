@@ -27,7 +27,7 @@
 
 (require 'eieio)
 (require 'cl-lib)
-(require 'context)
+(require 'gumshoe-context)
 (require 'gumshoe-lib)
 (require 'gumshoe-footprints)
 
@@ -35,7 +35,7 @@
   ((backlog :initform nil
             :initarg :backlog
             :documentation "Ring-buffer to remember the previous editing position.")
-   (filter :initform #'context--valid-p
+   (filter :initform #'gumshoe-context--valid-p
            :documentation "Filter used when backtracking.")
    (filtered :initform nil
              :documentation "The filtered log list used when backtracking.")
@@ -93,7 +93,7 @@ Optionally display MESSAGE."
         (gumshoe--hl-current-footprint filtered prev-index index))
       (if (not filtered)
           (setf msg "I haven't recorded any entries here yet...")
-        (context--jump (nth index filtered)))
+        (gumshoe-context--jump (nth index filtered)))
       (when msg (message msg)))))
 
 (cl-defmethod gumshoe--backtrack ((self gumshoe--backtracker) incrementer)

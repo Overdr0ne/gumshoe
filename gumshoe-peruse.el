@@ -25,7 +25,7 @@
 
 ;;; Code:
 
-(require 'context)
+(require 'gumshoe-context)
 (require 'gumshoe-lib)
 
 (defun gumshoe--peruse (objs slot-spec &optional obj-filter)
@@ -43,7 +43,7 @@ Pre-filter results with OBJ-FILTER."
                            '(metadata (display-sort-function . identity))
                          (complete-with-action action candidates string pred))))
          (candidate (completing-read prompt collection)))
-    (context--jump (cdr (assoc candidate candidates)))))
+    (gumshoe-context--jump (cdr (assoc candidate candidates)))))
 
 (provide 'gumshoe-peruse)
 ;;; gumshoe-peruse.el ends here

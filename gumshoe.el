@@ -36,7 +36,7 @@
 (require 'cl-lib)
 (require 'subr-x)
 (require 'cl-generic)
-(require 'context)
+(require 'gumshoe-context)
 (require 'gumshoe-lib)
 (require 'gumshoe-backtracker)
 (require 'gumshoe-footprints)
@@ -66,7 +66,7 @@ See `display-buffer' for more information"
   "Create a new backlog based on `gumshoe-backlog-type'.
 LOG-LEN is the maximum number of entries for ring-based backlogs."
   (if (eq gumshoe-backlog-type 'tree)
-      (etree--tree)
+      (gumshoe-etree--tree)
     (gumshoe--ring :ring (make-ring log-len))))
 
 ;;; Mode definition
@@ -189,7 +189,7 @@ at the earliest available entry."
   (let* ((backtracker (oref gumshoe-mode backtracker)))
     (with-slots (last-position backlog filter) backtracker
       (global-gumshoe-backtracking-mode +1)
-      (gumshoe--init-backtracking backtracker (or filter #'context--valid-p))
+      (gumshoe--init-backtracking backtracker (or filter #'gumshoe-context--valid-p))
       (if (not last-position)
           ;; Never backtracked before, start at latest
           (progn
@@ -197,7 +197,7 @@ at the earliest available entry."
             (message "Starting backtrack at latest entry..."))
         ;; Try to find the last position in the current filtered timeline
         (with-slots (filtered) backtracker
-          (let ((resume-index (cl-position last-position filtered :test #'context--equal)))
+          (let ((resume-index (cl-position last-position filtered :test #'gumshoe-context--equal)))
             (if resume-index
                 ;; Found the entry, jump to it
                 (gumshoe--jump-to-index backtracker resume-index
@@ -267,9 +267,9 @@ Results will be filtered using FILTER-NAME function."
        (gumshoe--backtrack (oref gumshoe-mode backtracker) #'+))))
 
 ;; Generate scoped backtracking and peruse commands
-(gumshoe--make-xface gumshoe-backtrack gumshoe-peruse-globally context--valid-p)
-(gumshoe--make-xface gumshoe-buf-backtrack gumshoe-peruse-in-buffer context--in-current-buffer-p)
-(gumshoe--make-xface gumshoe-win-backtrack gumshoe-peruse-in-window context--in-current-window-p)
+(gumshoe--make-xface gumshoe-backtrack gumshoe-peruse-globally gumshoe-context--valid-p)
+(gumshoe--make-xface gumshoe-buf-backtrack gumshoe-peruse-in-buffer gumshoe-context--in-current-buffer-p)
+(gumshoe--make-xface gumshoe-win-backtrack gumshoe-peruse-in-window gumshoe-context--in-current-window-p)
 
 ;; Markers for manually marking a position
 (defun gumshoe-drop-marker ()
@@ -277,7 +277,7 @@ Results will be filtered using FILTER-NAME function."
   (interactive)
   (gumshoe--log (oref (oref gumshoe-mode backtracker) backlog)))
 
-(gumshoe--make-xface gumshoe-marker-backtrack gumshoe-peruse-markers context--marker-context-p)
+(gumshoe--make-xface gumshoe-marker-backtrack gumshoe-peruse-markers gumshoe-context--marker-p)
 
 ;; Obsolete functions
 (make-obsolete 'gumshoe-backtrack-back 'gumshoe-buf-backtrack "3.0")

@@ -29,7 +29,7 @@
 (require 'eieio)
 (require 'cl-generic)
 (require 'cl-lib)
-(require 'context)
+(require 'gumshoe-context)
 (require 'gumshoe-lib)
 
 (defclass gumshoe--ring ()
@@ -42,8 +42,8 @@
   "Delete entry at INDEX from SELF and clean up its overlay."
   (with-slots (ring) self
     (let ((entry (ring-ref ring index)))
-      (when (object-of-class-p entry 'context)
-        (context--cleanup entry))
+      (when (object-of-class-p entry 'gumshoe-context)
+        (gumshoe-context--cleanup entry))
       (ring-remove ring index))))
 
 (cl-defmethod gumshoe--clean-recent ((self gumshoe--ring))
@@ -55,7 +55,7 @@
         (while (and continuep
                     (< i (ring-length ring)))
           (let ((entry (ring-ref ring i)))
-            (if (context--dead-p entry)
+            (if (gumshoe-context--dead-p entry)
                 (gumshoe--delete self i)
               (setq continuep nil))))))))
 
@@ -66,7 +66,7 @@
       (let ((i 0))
         (while (< i (ring-length ring))
           (let ((entry (ring-ref ring i)))
-            (if (context--dead-p entry)
+            (if (gumshoe-context--dead-p entry)
                 (gumshoe--delete self i)
               (cl-incf i))))))))
 
@@ -85,7 +85,7 @@
   (mapc (apply-partially #'gumshoe--remove-footprint-entry self)
         (gumshoe--footprints-at position)))
 
-(cl-defmethod gumshoe--add-entry ((self gumshoe--ring) (entry context))
+(cl-defmethod gumshoe--add-entry ((self gumshoe--ring) (entry gumshoe-context))
   "Add ENTRY to SELF."
   (with-slots (ring) self
     (ring-insert ring entry)))
@@ -102,9 +102,9 @@ Log automatically if ALARMP is t."
       (let ((new-entry (gumshoe--make-entry)))
         (when (or (ring-empty-p ring)
                   (let ((latest-entry (ring-ref ring 0)))
-                    (and (not (context--equal new-entry latest-entry))
+                    (and (not (gumshoe-context--equal new-entry latest-entry))
                          (or alarmp
-                             (not (context--in-current-buffer-p latest-entry))
+                             (not (gumshoe-context--in-current-buffer-p latest-entry))
                              (gumshoe--end-of-leash-p latest-entry)))))
           (gumshoe--add-entry self new-entry))))))
 

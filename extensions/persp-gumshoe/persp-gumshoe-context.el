@@ -1,4 +1,4 @@
-;;; persp-context.el --- Perspective.el integration for context -*- lexical-binding: t; -*-
+;;; persp-gumshoe-context.el --- Perspective.el integration for gumshoe-context -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025  Sam
 
@@ -23,40 +23,40 @@
 
 ;;; Commentary:
 
-;; This module provides perspective.el integration for the context library.
-;; It defines a persp-context subclass that includes perspective information.
+;; This module provides perspective.el integration for the gumshoe-context library.
+;; It defines a persp-gumshoe-context subclass that includes perspective information.
 
 ;;; Code:
 
 (require 'eieio)
 (require 'perspective)
-(require 'context)
+(require 'gumshoe-context)
 
-(defclass persp-context (context)
+(defclass persp-gumshoe-context (gumshoe-context)
   ((perspective :initform (and (fboundp 'persp-current-name) (persp-current-name))
                 :documentation "The perspective name for this context entry."))
   "Entry class for context with perspective tracking.")
 
-(cl-defmethod context--in-current-persp-p ((entry persp-context))
+(cl-defmethod gumshoe-context--in-current-persp-p ((entry persp-gumshoe-context))
   "Check if ENTRY in the current perspective."
   (equal (oref entry perspective) (persp-current-name)))
 
-(cl-defmethod context--equal ((self persp-context) (other persp-context))
+(cl-defmethod gumshoe-context--equal ((self persp-gumshoe-context) (other persp-gumshoe-context))
   "Check if SELF and OTHER are approximately equal."
   (and
    (equal (oref self perspective) (oref other perspective))
    (equal (oref self filename) (oref other filename))
    (equal (oref self position) (oref other position))))
 
-(cl-defmethod context--jump ((self persp-context))
+(cl-defmethod gumshoe-context--jump ((self persp-gumshoe-context))
   "Jump Point to buffer, perspective and position in SELF."
   (with-slots (buffer perspective overlay) self
     (persp-switch perspective)
-    (if context-prefer-same-window
+    (if gumshoe-context-prefer-same-window
         (pop-to-buffer-same-window buffer)
       (pop-to-buffer buffer))
     (let ((position (overlay-start overlay)))
       (goto-char position))))
 
-(provide 'persp-context)
-;;; persp-context.el ends here
+(provide 'persp-gumshoe-context)
+;;; persp-gumshoe-context.el ends here

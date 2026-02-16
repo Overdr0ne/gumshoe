@@ -53,12 +53,12 @@ Returns a closure that handles preview actions by jumping to context entries."
          ;; cand is the context object thanks to consult--lookup-candidate
          (when cand
            (condition-case nil
-               (context--jump cand)
+               (gumshoe-context--jump cand)
              (error nil))))
         ('return
          ;; Final selection - stay at the selected entry
          (when cand
-           (context--jump cand)))
+           (gumshoe-context--jump cand)))
         ((or 'exit 'abort)
          ;; User cancelled - restore original position
          (when (and (not cand) original-window original-buffer)
@@ -101,7 +101,7 @@ gumshoe will jump to each entry to preview it."
   (interactive)
   (let* ((backlog (oref (oref gumshoe-mode backtracker) backlog))
          (entries (gumshoe--construct-timeline backlog)))
-    (consult-gumshoe--peruse entries gumshoe-slot-schema #'context--valid-p)))
+    (consult-gumshoe--peruse entries gumshoe-slot-schema #'gumshoe-context--valid-p)))
 
 ;;;###autoload
 (defun consult-gumshoe-peruse-in-buffer ()
@@ -109,7 +109,7 @@ gumshoe will jump to each entry to preview it."
   (interactive)
   (let* ((backlog (oref (oref gumshoe-mode backtracker) backlog))
          (entries (gumshoe--construct-timeline backlog)))
-    (consult-gumshoe--peruse entries gumshoe-slot-schema #'context--in-current-buffer-p)))
+    (consult-gumshoe--peruse entries gumshoe-slot-schema #'gumshoe-context--in-current-buffer-p)))
 
 ;;;###autoload
 (defun consult-gumshoe-peruse-in-window ()
@@ -117,7 +117,7 @@ gumshoe will jump to each entry to preview it."
   (interactive)
   (let* ((backlog (oref (oref gumshoe-mode backtracker) backlog))
          (entries (gumshoe--construct-timeline backlog)))
-    (consult-gumshoe--peruse entries gumshoe-slot-schema #'context--in-current-window-p)))
+    (consult-gumshoe--peruse entries gumshoe-slot-schema #'gumshoe-context--in-current-window-p)))
 
 ;;;###autoload
 (defun consult-gumshoe-peruse-markers ()
@@ -125,7 +125,7 @@ gumshoe will jump to each entry to preview it."
   (interactive)
   (let* ((backlog (oref (oref gumshoe-mode backtracker) backlog))
          (entries (gumshoe--construct-timeline backlog)))
-    (consult-gumshoe--peruse entries gumshoe-slot-schema #'context--marker-context-p)))
+    (consult-gumshoe--peruse entries gumshoe-slot-schema #'gumshoe-context--marker-p)))
 
 (provide 'consult-gumshoe)
 ;;; consult-gumshoe.el ends here

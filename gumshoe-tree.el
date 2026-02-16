@@ -27,17 +27,17 @@
 ;;; Code:
 
 ;; (require 'dash)
-(require 'etree)
+(require 'gumshoe-etree)
 (require 'cl-generic)
-(require 'context)
+(require 'gumshoe-context)
 (require 'gumshoe-lib)
 
-;; Specialize etree cleanup for context objects to handle overlay cleanup
-(cl-defmethod etree--cleanup ((entry context))
+;; Specialize gumshoe-etree cleanup for context objects to handle overlay cleanup
+(cl-defmethod gumshoe-etree--cleanup ((entry gumshoe-context))
   "Clean up overlay resources held by context ENTRY."
-  (context--cleanup entry))
+  (gumshoe-context--cleanup entry))
 
-(cl-defmethod gumshoe--clean-root ((self etree--tree))
+(cl-defmethod gumshoe--clean-root ((self gumshoe-etree--tree))
   "Remove dead entries from the root of SELF."
   (let* (
          (timeline (gumshoe--construct-timeline-nodes self))
@@ -47,12 +47,12 @@
                 timeline)
       (setf iter (car timeline))
       (if (gumshoe--dead-p iter)
-          (setf iter (etree--remove self iter))
+          (setf iter (gumshoe-etree--remove self iter))
         (setq continuep nil))
       (setf timeline (cdr timeline))))
   self)
 
-(cl-defmethod gumshoe--clean-recent ((self etree--tree))
+(cl-defmethod gumshoe--clean-recent ((self gumshoe-etree--tree))
   "Clean up recent dead entries from SELF."
   (unless (eq (oref self current) (oref self root))
     (let ((iter (oref self current))
@@ -60,66 +60,66 @@
       (while (and continuep
                   iter)
         (if (gumshoe--dead-p iter)
-            (etree--remove self iter)
+            (gumshoe-etree--remove self iter)
           (setq continuep nil))
         (setq iter (oref self current))))))
 
-(cl-defmethod gumshoe--dead-p ((self etree--node))
+(cl-defmethod gumshoe--dead-p ((self gumshoe-etree--node))
   "Return t if SELF references a dead entry."
   (if self
-      (context--dead-p (oref self entry))
+      (gumshoe-context--dead-p (oref self entry))
     t))
-(cl-defmethod gumshoe--clean ((self etree--tree))
+(cl-defmethod gumshoe--clean ((self gumshoe-etree--tree))
   "Remove all dead entries from SELF."
   (unless (eq (oref self current) (oref self root))
     (gumshoe--clean-recent self)
     (gumshoe--clean-root self)
-    (mapc #'etree--delete
-          (etree--collect self 'gumshoe--dead-p))))
+    (mapc #'gumshoe-etree--delete
+          (gumshoe-etree--collect self 'gumshoe--dead-p))))
 
-(cl-defmethod gumshoe--remove-footprint-entry ((self etree--tree) footprint)
+(cl-defmethod gumshoe--remove-footprint-entry ((self gumshoe-etree--tree) footprint)
   "Remove FOOTPRINT entry from SELF."
   (when-let ((tree-node (overlay-get footprint 'tree-node)))
-    (etree--remove self tree-node)
+    (gumshoe-etree--remove self tree-node)
     (delete-overlay footprint)))
 
-(cl-defmethod gumshoe--remove-footprint-entries-at ((self etree--tree) position)
+(cl-defmethod gumshoe--remove-footprint-entries-at ((self gumshoe-etree--tree) position)
   "Remove footprint entries at POSITION from SELF."
   (when position
     (mapc (apply-partially #'gumshoe--remove-footprint-entry self)
           (gumshoe--footprints-at position))))
 
 ;;; filter predicates
-(cl-defmethod gumshoe--in-current-buffer-p ((self etree--node))
+(cl-defmethod gumshoe--in-current-buffer-p ((self gumshoe-etree--node))
   "Check if SELF references an entry in the current buffer."
   (let ((entry (oref self entry)))
     (equal (oref entry buffer) (current-buffer))))
 
-(cl-defmethod gumshoe--in-current-window-p ((self etree--node))
+(cl-defmethod gumshoe--in-current-window-p ((self gumshoe-etree--node))
   "Check if SELF references an entry in the current window."
   (let ((entry (oref self entry)))
     (equal (oref entry window) (get-buffer-window (current-buffer)))))
 
-(cl-defmethod gumshoe--construct-timeline-nodes ((self etree--tree))
+(cl-defmethod gumshoe--construct-timeline-nodes ((self gumshoe-etree--tree))
   "Return the path from root to current node in SELF."
-  (etree--path self))
-(cl-defmethod gumshoe--construct-timeline ((self etree--tree))
+  (gumshoe-etree--path self))
+(cl-defmethod gumshoe--construct-timeline ((self gumshoe-etree--tree))
   "Return entries along the path from root to current node in SELF."
   (reverse (mapcar (lambda (node) (oref node entry))
-                   (etree--path self))))
+                   (gumshoe-etree--path self))))
 
-(cl-defmethod gumshoe--add-entry ((self etree--tree) (entry context))
+(cl-defmethod gumshoe--add-entry ((self gumshoe-etree--tree) (entry gumshoe-context))
   "Add ENTRY to SELF."
-  (let* ((new-node (etree--node :entry entry)))
-    (cl-assert (and new-node (object-of-class-p new-node 'etree--node)))
+  (let* ((new-node (gumshoe-etree--node :entry entry)))
+    (cl-assert (and new-node (object-of-class-p new-node 'gumshoe-etree--node)))
     (when (eq gumshoe-footprint-strategy 'delete-overlapping)
       (gumshoe--remove-footprint-entries-at self (point)))
     ;; Set tree-node property on overlay (overlay should already exist from gumshoe--make-entry)
     (when-let ((overlay (oref entry overlay)))
       (overlay-put overlay 'tree-node new-node))
-    (etree--insert self new-node)))
+    (gumshoe-etree--insert self new-node)))
 
-(cl-defmethod gumshoe--log-if-necessary ((self etree--tree) &optional alarmp)
+(cl-defmethod gumshoe--log-if-necessary ((self gumshoe-etree--tree) &optional alarmp)
   "Check current position and log in SELF if significant.
 
 Log automatically if ALARMP is t."
@@ -129,13 +129,13 @@ Log automatically if ALARMP is t."
       (when (or (not (oref self current))
                 (not (oref (oref self current) entry))
                 (let ((latest-entry (oref (oref self current) entry)))
-                  (and (not (context--equal new-entry latest-entry))
+                  (and (not (gumshoe-context--equal new-entry latest-entry))
                        (or alarmp
-                           (not (context--in-current-buffer-p latest-entry))
+                           (not (gumshoe-context--in-current-buffer-p latest-entry))
                            (gumshoe--end-of-leash-p latest-entry)))))
         (gumshoe--add-entry self new-entry)))))
 
-(cl-defmethod gumshoe--log ((self etree--tree))
+(cl-defmethod gumshoe--log ((self gumshoe-etree--tree))
   "Manually log current position in SELF as a marker."
   (unless (cl-some #'funcall gumshoe-ignore-predicates)
     (let ((new-entry (gumshoe--make-entry)))

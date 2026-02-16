@@ -41,12 +41,12 @@
   (should (boundp 'gumshoe-log-len))
   (should (boundp 'gumshoe-follow-distance)))
 
-(ert-deftest gumshoe-test-load-context ()
-  "Test that context loads without errors."
-  (should (require 'context nil t))
-  (should (fboundp 'context--valid-p))
-  (should (fboundp 'context--jump))
-  (should (class-p 'context)))
+(ert-deftest gumshoe-test-load-gumshoe-context ()
+  "Test that gumshoe-context loads without errors."
+  (should (require 'gumshoe-context nil t))
+  (should (fboundp 'gumshoe-context--valid-p))
+  (should (fboundp 'gumshoe-context--jump))
+  (should (class-p 'gumshoe-context)))
 
 (ert-deftest gumshoe-test-load-backtracker ()
   "Test that gumshoe-backtracker loads without errors."
@@ -109,10 +109,10 @@
   "Test that tree backlog can be initialized."
   (skip-unless (require 'dash nil t))
   (require 'gumshoe-tree)
-  (require 'etree)
+  (require 'gumshoe-etree)
   (let ((backlog (gumshoe--backlog-init 10)))
     (should backlog)
-    (should (etree--tree-p backlog))))
+    (should (gumshoe-etree--tree-p backlog))))
 
 ;;; Mode Tests
 
@@ -245,8 +245,8 @@
     (global-gumshoe-mode -1)))
 
 (ert-deftest gumshoe-test-entry-creation-without-optional-deps ()
-  "Test that context entries can be created without optional dependencies."
-  (require 'context)
+  "Test that gumshoe-context entries can be created without optional dependencies."
+  (require 'gumshoe-context)
   (require 'gumshoe-lib)
 
   ;; Create a context entry
@@ -255,12 +255,12 @@
     (goto-char (point-min))
     (let ((entry (gumshoe--make-entry)))
       (should entry)
-      (should (context-p entry))
+      (should (gumshoe-context-p entry))
       (should (oref entry overlay))
       (should (buffer-live-p (oref entry buffer)))
       (should (numberp (oref entry position)))
       ;; Clean up
-      (context--cleanup entry))))
+      (gumshoe-context--cleanup entry))))
 
 (ert-deftest gumshoe-test-backlog-operations-without-optional-deps ()
   "Test basic backlog operations work without optional dependencies."

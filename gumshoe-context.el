@@ -1,4 +1,4 @@
-;;; context.el --- User context metadata storage and retrieval  -*- lexical-binding: t; -*-
+;;; gumshoe-context.el --- User context metadata storage and retrieval  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021 overdr0ne
 
@@ -29,17 +29,17 @@
 
 (require 'eieio)
 
-(defgroup context nil
+(defgroup gumshoe-context nil
   "Library for storing and interacting with user context metadata."
   :group 'convenience
-  :prefix "context-")
+  :prefix "gumshoe-context-")
 
-(defcustom context-prefer-same-window nil
+(defcustom gumshoe-context-prefer-same-window nil
   "Prefer jumping using the window where point currently is."
   :type 'boolean
-  :group 'context)
+  :group 'gumshoe-context)
 
-(defclass context ()
+(defclass gumshoe-context ()
   ((filename :initform (buffer-file-name)
              :documentation "The full path of this entry.")
    (buffer :initform (current-buffer)
@@ -62,25 +62,25 @@
 This must be set manually because overlays cannot be garbage collected.")   )
   "Entry class for tracking user context information.")
 
-(defcustom context-horizontal-scale 4
+(defcustom gumshoe-context-horizontal-scale 4
   "Horizontal follow distances are divided by this factor."
   :type 'integer
-  :group 'context)
+  :group 'gumshoe-context)
 
-(cl-defmethod context--valid-p ((self context))
+(cl-defmethod gumshoe-context--valid-p ((self gumshoe-context))
   "Return t if SELF is valid."
-  (cl-typep self 'context))
+  (cl-typep self 'gumshoe-context))
 
-(cl-defmethod context--jump ((self context))
+(cl-defmethod gumshoe-context--jump ((self gumshoe-context))
   "Jump Point to buffer and position in SELF."
   (let ((position (overlay-start (oref self overlay))))
     (with-slots (buffer) self
-      (if context-prefer-same-window
+      (if gumshoe-context-prefer-same-window
           (pop-to-buffer-same-window buffer)
         (pop-to-buffer buffer))
       (goto-char position))))
 
-(cl-defmethod context--dead-p ((self context))
+(cl-defmethod gumshoe-context--dead-p ((self gumshoe-context))
   "Check if SELF is dead."
   (if-let* ((overlay (oref self overlay))
             (buffer (overlay-buffer overlay))
@@ -95,24 +95,24 @@ This must be set manually because overlays cannot be garbage collected.")   )
     t))
 
 ;;; filter predicates
-(cl-defmethod context--in-current-buffer-p ((entry context))
+(cl-defmethod gumshoe-context--in-current-buffer-p ((entry gumshoe-context))
   "Check if ENTRY is in the current buffer."
   (equal (oref entry buffer) (current-buffer)))
 
-(cl-defmethod context--in-current-window-p ((entry context))
+(cl-defmethod gumshoe-context--in-current-window-p ((entry gumshoe-context))
   "Check if ENTRY is in the current window."
   (equal (oref entry window) (get-buffer-window (current-buffer))))
 
-(cl-defmethod context--marker-context-p ((entry context))
+(cl-defmethod gumshoe-context--marker-p ((entry gumshoe-context))
   "Check if ENTRY is a marker."
   (equal (oref entry category) "marker"))
 
-(defun context--column-at (pos)
+(defun gumshoe-context--column-at (pos)
   "Return column number at POS."
   (save-excursion
     (goto-char pos)
     (current-column)))
-(cl-defmethod context--distance-to ((self context))
+(cl-defmethod gumshoe-context--distance-to ((self gumshoe-context))
   "Return the Euclidean distance between point and SELF."
   (if-let* ((overlay (oref self overlay))
             (buf (overlay-buffer overlay))
@@ -121,14 +121,14 @@ This must be set manually because overlays cannot be garbage collected.")   )
             (line (with-current-buffer buf (line-number-at-pos pos)))
             (dline (abs (- line
                            (line-number-at-pos (point)))))
-            (column (context--column-at pos))
+            (column (gumshoe-context--column-at pos))
             (dcolumn (abs (- column
                              (current-column))))
-            (dcolumn-scaled (/ dcolumn context-horizontal-scale)))
+            (dcolumn-scaled (/ dcolumn gumshoe-context-horizontal-scale)))
       (sqrt (+ (expt dline 2) (expt dcolumn-scaled 2)))
     (message "failed to get distance for context %s" self)
     1000))
-(cl-defmethod context--equal ((self context) (other context))
+(cl-defmethod gumshoe-context--equal ((self gumshoe-context) (other gumshoe-context))
   "Return t if SELF and OTHER are approximately equal."
   (and
    (equal (oref self filename) (oref other filename))
@@ -137,12 +137,12 @@ This must be set manually because overlays cannot be garbage collected.")   )
    (equal (overlay-start (oref self overlay))
           (overlay-start (oref other overlay)))))
 
-(cl-defmethod context--cleanup ((self context))
+(cl-defmethod gumshoe-context--cleanup ((self gumshoe-context))
   "Clean up resources (like overlays) held by SELF."
   (let ((overlay (oref self overlay)))
     (when (and overlay (overlayp overlay))
       (delete-overlay overlay)
       (oset self overlay nil))))
 
-(provide 'context)
-;;; context.el ends here
+(provide 'gumshoe-context)
+;;; gumshoe-context.el ends here

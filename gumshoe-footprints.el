@@ -26,7 +26,7 @@
 
 ;;; Code:
 
-(require 'context)
+(require 'gumshoe-context)
 (require 'gumshoe-lib)
 
 (defun gumshoe--cover-old-footprints-at (position)
@@ -35,7 +35,7 @@
     (dolist (footprint-i footprints)
       (overlay-put footprint-i 'after-string ""))))
 
-(cl-defmethod gumshoe--mark-footprint ((self context) id face)
+(cl-defmethod gumshoe--mark-footprint ((self gumshoe-context) id face)
   "Add footprint overlay to SELF, labeled with ID, using FACE."
   (with-slots (buffer overlay) self
     (message (buffer-name buffer))

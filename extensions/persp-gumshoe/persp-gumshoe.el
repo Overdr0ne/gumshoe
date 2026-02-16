@@ -38,10 +38,10 @@
 
 (require 'perspective)
 (require 'gumshoe)
-(require 'persp-context)
+(require 'persp-gumshoe-context)
 
 (defcustom persp-gumshoe-auto-config t
-  "Automatically set the backlog type to `persp-context' if t."
+  "Automatically set the backlog type to `persp-gumshoe-context' if t."
   :group 'gumshoe
   :type 'boolean)
 
@@ -50,8 +50,8 @@
   (interactive) (global-gumshoe-mode +1))
 (make-obsolete 'global-persp-gumshoe-mode 'global-gumshoe-mode "2.0")
 
-(setf gumshoe-entry-type 'persp-context)
-(gumshoe--make-xface gumshoe-persp-backtrack gumshoe-peruse-in-persp context--in-current-persp-p)
+(setf gumshoe-entry-type 'persp-gumshoe-context)
+(gumshoe--make-xface gumshoe-persp-backtrack gumshoe-peruse-in-persp gumshoe-context--in-current-persp-p)
 
 (make-obsolete 'gumshoe-persp-backtrack-back 'gumshoe-persp-backtrack "3.0")
 (make-obsolete 'gumshoe-persp-backtrack-forward 'gumshoe-persp-backtrack "3.0")

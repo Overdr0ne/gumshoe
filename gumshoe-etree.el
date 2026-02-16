@@ -1,4 +1,4 @@
-;;; etree.el --- A library for working with trees    -*- lexical-binding: t; -*-
+;;; gumshoe-etree.el --- A library for working with trees    -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025 overdr0ne
 
@@ -33,13 +33,13 @@
 
 ;; Generic cleanup method for entries stored in tree nodes
 ;; Clients can specialize this for their own entry types if cleanup is needed
-(cl-defgeneric etree--cleanup (_entry)
+(cl-defgeneric gumshoe-etree--cleanup (_entry)
   "Clean up resources held by ENTRY.
 Default implementation does nothing.  Specialize this method for entry types
 that require cleanup (e.g., overlays, processes, buffers)."
   nil)
 
-(defclass etree--node ()
+(defclass gumshoe-etree--node ()
   (
    (entry :initform nil
           :initarg :entry)
@@ -49,7 +49,7 @@ that require cleanup (e.g., overlays, processes, buffers)."
            :initarg :parent))
   "A node in a tree.")
 
-(defclass etree--tree ()
+(defclass gumshoe-etree--tree ()
   (
    (root :initform nil
          :initarg :root
@@ -59,11 +59,11 @@ that require cleanup (e.g., overlays, processes, buffers)."
             :documentation "Current node in the tree."))
   "A tree to keep track of the target’s movements as they move forward and backward in time.")
 
-(cl-defmethod etree--insert ((self etree--tree) (new etree--node))
+(cl-defmethod gumshoe-etree--insert ((self gumshoe-etree--tree) (new gumshoe-etree--node))
   "Insert NEW as a child of the current node in SELF.
 If the tree has no root, NEW becomes the root."
   (if (not self)
-      (etree--tree self :root new :current new)
+      (gumshoe-etree--tree self :root new :current new)
     (if (not (oref self root))
         (progn (oset self root new) (oset self current new))
       (let* ((current (oref self current)))
@@ -72,7 +72,7 @@ If the tree has no root, NEW becomes the root."
         (oset self current new))))
   self)
 
-(cl-defmethod etree--preorder ((self etree--tree))
+(cl-defmethod gumshoe-etree--preorder ((self gumshoe-etree--tree))
   "Return all nodes in SELF in preorder traversal."
   (let* ((stk (list (oref self root)))
          (preorder nil)
@@ -85,7 +85,7 @@ If the tree has no root, NEW becomes the root."
       (cl-incf i))
     preorder))
 
-(cl-defmethod etree--dfs ((self etree--tree) (key etree--node))
+(cl-defmethod gumshoe-etree--dfs ((self gumshoe-etree--tree) (key gumshoe-etree--node))
   "Search SELF for KEY using depth-first search.  Return t if found."
   (let* ((stk (list (oref self root)))
          (i 0)
@@ -101,26 +101,26 @@ If the tree has no root, NEW becomes the root."
       (cl-incf i))
     foundp))
 
-(cl-defmethod etree--delete ((self etree--node))
+(cl-defmethod gumshoe-etree--delete ((self gumshoe-etree--node))
   "Delete SELF from tree and clean up entry resources."
   (when self
     (let ((entry (oref self entry)))
       (when entry
-        (etree--cleanup entry)))
+        (gumshoe-etree--cleanup entry)))
     (when (oref self parent)
       (oset (oref self parent) children (oref self children)))
     (dolist (child (oref self children))
       (oset child parent (oref self parent)))))
 
-(cl-defmethod etree--remove ((self etree--tree) (key etree--node))
+(cl-defmethod gumshoe-etree--remove ((self gumshoe-etree--tree) (key gumshoe-etree--node))
   "Remove KEY from SELF, reparenting its children."
   (when (eq key (oref self current))
     (oset self current (oref (oref self current) parent)))
   (when (eq key (oref self root))
     (oset self root (car (oref (oref self root) children))))
-  (etree--delete key))
+  (gumshoe-etree--delete key))
 
-(cl-defmethod etree--mapc ((self etree--tree) f)
+(cl-defmethod gumshoe-etree--mapc ((self gumshoe-etree--tree) f)
   "Apply F to each node in SELF via preorder traversal."
   (let* ((stk (list (oref self root)))
          (preorder nil)
@@ -134,7 +134,7 @@ If the tree has no root, NEW becomes the root."
       (cl-incf i))
     preorder))
 
-(cl-defmethod etree--collect ((self etree--tree) predicate)
+(cl-defmethod gumshoe-etree--collect ((self gumshoe-etree--tree) predicate)
   "Collect nodes in SELF satisfying PREDICATE via preorder traversal."
   (let* ((stk (list (oref self root)))
          (preorder nil)
@@ -148,7 +148,7 @@ If the tree has no root, NEW becomes the root."
       (cl-incf i))
     preorder))
 
-(cl-defmethod etree--path ((self etree--tree))
+(cl-defmethod gumshoe-etree--path ((self gumshoe-etree--tree))
   "Return the path from the root to the current node in SELF."
   (let (path
         (continuep t)
@@ -160,5 +160,5 @@ If the tree has no root, NEW becomes the root."
       (when (eq iter (oref self root)) (setf continuep nil)))
     path))
 
-(provide 'etree)
-;;; etree.el ends here
+(provide 'gumshoe-etree)
+;;; gumshoe-etree.el ends here

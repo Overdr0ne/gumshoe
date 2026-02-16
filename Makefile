@@ -4,7 +4,7 @@ LOAD = -l elpa.el -l gumshoe.el
 RM ?= rm -f
 
 # Core module files to compile (no external deps)
-CORE_SOURCES = context.el etree.el gumshoe-lib.el gumshoe-backtracker.el \
+CORE_SOURCES = gumshoe-context.el gumshoe-etree.el gumshoe-lib.el gumshoe-backtracker.el \
                gumshoe-footprints.el gumshoe-peruse.el gumshoe-ring.el \
                gumshoe.el
 
@@ -21,8 +21,8 @@ test-load:
 	$(emacs) -batch -l elpa.el \
 		--eval "(progn \
 		  (add-to-list 'load-path default-directory) \
-		  (require 'context) \
-		  (require 'etree) \
+		  (require 'gumshoe-context) \
+		  (require 'gumshoe-etree) \
 		  (require 'gumshoe-lib) \
 		  (require 'gumshoe-backtracker) \
 		  (require 'gumshoe-footprints) \

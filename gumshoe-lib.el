@@ -27,7 +27,7 @@
 
 ;;; Code:
 
-(require 'context)
+(require 'gumshoe-context)
 (require 'cl-generic)
 
 ;; Generic methods for backlog implementations (ring and tree)
@@ -82,7 +82,7 @@ Log automatically if ALARMP is t.")
 The old footprints are still there, but won’t be revealed until you reach them.
 Set to nil if you would like all footprints displayed at once."
   :type 'boolean)
-(defcustom gumshoe-entry-type 'context
+(defcustom gumshoe-entry-type 'gumshoe-context
   "Type of entry Gumshoe should use in the backlog."
   :type 'symbol)
 
@@ -96,8 +96,8 @@ Set to nil if you would like all footprints displayed at once."
   :group 'gumshoe)
 
 ;; Obsolete alias for backward compatibility
-(define-obsolete-variable-alias 'gumshoe-prefer-same-window 'context-prefer-same-window "3.1"
-  "Use context-prefer-same-window instead.")
+(define-obsolete-variable-alias 'gumshoe-prefer-same-window 'gumshoe-context-prefer-same-window "3.1"
+  "Use gumshoe-context-prefer-same-window instead.")
 
 (defface gumshoe--peruse-separator-face
   '((t
@@ -135,9 +135,9 @@ Set to nil if you would like all footprints displayed at once."
   :type '(repeat symbol))
 
 (defun gumshoe--overlay-is-footprint-p (overlay)
-  "Return non-nil if OVERLAY is a context."
+  "Return non-nil if OVERLAY is a context entry."
   (if-let ((entry (overlay-get overlay 'container)))
-      (object-of-class-p entry 'context)
+      (object-of-class-p entry 'gumshoe-context)
     nil))
 
 (defun gumshoe--footprints-at (position)
@@ -156,9 +156,9 @@ Set to nil if you would like all footprints displayed at once."
                            gumshoe-backtrack-cancel))))
 
 ;; tracking
-(cl-defmethod gumshoe--end-of-leash-p ((last-entry context))
+(cl-defmethod gumshoe--end-of-leash-p ((last-entry gumshoe-context))
   "Check if LAST-ENTRY is outside gumshoe's boundary."
-  (> (context--distance-to last-entry)
+  (> (gumshoe-context--distance-to last-entry)
      gumshoe-follow-distance))
 
 (defun gumshoe--make-entry ()
