@@ -4,7 +4,6 @@
 
 ;; Author: Sam <scmorris.dev@gmail.com>
 ;; Version: 1.0
-;; Package-Requires: ((emacs "27.1") (perspective "2.0") (gumshoe "4.0"))
 ;; Keywords: tools
 ;; URL: https://github.com/Overdr0ne/gumshoe
 
