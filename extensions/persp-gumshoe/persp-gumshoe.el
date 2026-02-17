@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2021  overdr0ne
 
-;; Author: overdr0ne
+;; Author: overdr0ne <scmorris.dev@gmail.com>
 ;; Version: 1.0
 ;; Package-Requires: ((emacs "27.1") (perspective "2.0") (gumshoe "4.0"))
 ;; Keywords: tools
