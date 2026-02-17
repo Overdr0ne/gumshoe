@@ -41,7 +41,7 @@
 (require 'persp-gumshoe-context)
 
 (defcustom persp-gumshoe-auto-config t
-  "Automatically set the backlog type to `persp-gumshoe-context' if t."
+  "Automatically set the backlog type to symbol `persp-gumshoe-context' if t."
   :group 'gumshoe
   :type 'boolean)
 
