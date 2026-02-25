@@ -1,3 +1,4 @@
+[[https://melpa.org/#/consult-gumshoe][file:https://melpa.org/packages/consult-gumshoe-badge.svg]]
 #+title: consult-gumshoe
 #+author: overdr0ne
 
@@ -9,19 +10,10 @@ This package provides [[https://github.com/minad/consult][consult]] integration 
 
 * Installation
 
-** MELPA
+Available on [[https://melpa.org/#/consult-gumshoe][MELPA]].
 
 #+begin_src elisp
 (use-package consult-gumshoe
-  :after (gumshoe consult))
-#+end_src
-
-** straight.el
-
-#+begin_src elisp
-(use-package consult-gumshoe
-  :straight (consult-gumshoe :type git :host github :repo "Overdr0ne/gumshoe"
-                             :files ("extensions/consult-gumshoe/*.el"))
   :after (gumshoe consult))
 #+end_src
 

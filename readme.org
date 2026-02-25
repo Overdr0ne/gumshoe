@@ -13,13 +13,10 @@
   Gumshoe does not keep track of every move you make, rather, only at increments of some minimum Euclidean distance from the last tracked position, like a leash. It will also automatically log a position if you’ve idled there for a configurable amount of time. This package is very similar to Vim’s jump list, just generalized for Emacs.
 
 * Installation
-  I just use straight+use-package like so:
+  Gumshoe is available on [[https://melpa.org/#/gumshoe][MELPA]].  I just use straight+use-package like so:
+
   #+begin_src elisp
     (use-package gumshoe
-      :straight (gumshoe :type git
-                         :host github
-                         :repo "Overdr0ne/gumshoe"
-                         :branch "master")
       :init
       ;; Enabing global-gumshoe-mode will initiate tracking
       (global-gumshoe-mode +1)

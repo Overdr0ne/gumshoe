@@ -1,3 +1,4 @@
+[[https://melpa.org/#/persp-gumshoe][file:https://melpa.org/packages/persp-gumshoe-badge.svg]]
 #+title: persp-gumshoe
 
 Perspective.el integration for [[https://github.com/Overdr0ne/gumshoe][gumshoe]].
@@ -8,24 +9,11 @@ This package extends gumshoe's point movement tracking to include perspective in
 
 * Installation
 
-** MELPA
+Available on [[https://melpa.org/#/persp-gumshoe][MELPA]].
 
 #+begin_src elisp
 (use-package persp-gumshoe
-  :after (gumshoe perspective)
-  :config
-  (require 'persp-gumshoe))
-#+end_src
-
-** straight.el
-
-#+begin_src elisp
-(use-package persp-gumshoe
-  :straight (persp-gumshoe :type git :host github :repo "Overdr0ne/gumshoe"
-                           :files ("extensions/persp-gumshoe/*.el"))
-  :after (gumshoe perspective)
-  :config
-  (require 'persp-gumshoe))
+  :after (gumshoe perspective))
 #+end_src
 
 * Dependencies
