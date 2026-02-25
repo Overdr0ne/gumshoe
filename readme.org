@@ -109,8 +109,9 @@
   Packages above may have one or two of these features, but changes on the order of a complete rewrite would be required to make them work like gumshoe. But comments are totally welcome if you’d like to open an issue.
 
 * Extensions
-  - [[file:extensions/persp-gumshoe/readme.org][persp-gumshoe]]
-  - [[file:extensions/consult-gumshoe/readme.org][consult-gumshoe]]
+  These are available as separate packages on MELPA. See their readmes for installation and usage details.
+  - [[file:extensions/persp-gumshoe/readme.org][persp-gumshoe]] - [[https://github.com/nex3/perspective-el][perspective.el]] integration for perspective-aware backtracking and perusal
+  - [[file:extensions/consult-gumshoe/readme.org][consult-gumshoe]] - [[https://github.com/minad/consult][consult]] integration with live preview as you browse the backlog
 
 * Migration from gumshoe 3.x
 
